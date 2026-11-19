@@ -1,10 +1,10 @@
 // -------------------------------------------------------------------------
 // ASM SYMBOLS
 // -------------------------------------------------------------------------
-BoundVector                              = 0x80150de0; // type:func
-BoundSVector                             = 0x80150ef0; // type:func
-BoundAngle                               = 0x80151030; // type:func
-BoundSAngle                              = 0x80151090; // type:func
+BoundVector                              = 0x80150de0; // type:func size:0x110
+BoundSVector                             = 0x80150ef0; // type:func size:0x140
+BoundAngle                               = 0x80151030; // type:func size:0x60
+BoundSAngle                              = 0x80151090; // type:func size:0x70
 geomObjectStart                          = 0x800f790c; // type:label
 geomMatSame                              = 0x800f7988; // type:label
 label1_3                                 = 0x800f79f0; // type:label
@@ -966,10 +966,6 @@ uaGetCarNameString                       = 0x80150cb4; // type:func
 uaHasPlayerBeatThisLevel                 = 0x80150cec; // type:func
 uaPlayerCheating                         = 0x80150cf8; // type:func
 uaInitBossCar                            = 0x80150d04; // type:func
-FUN_80150df8                             = 0x80150df8; // type:func
-FUN_80150f08                             = 0x80150f08; // type:func
-FUN_80151048                             = 0x80151048; // type:func
-FUN_801510a8                             = 0x801510a8; // type:func
 SmoothAngleValue                         = 0x80151100; // type:func
 SmoothValue                              = 0x801511d8; // type:func
 SmoothValue2                             = 0x80151214; // type:func
@@ -2618,12 +2614,12 @@ matPtrs                                  = 0x80195eb0; // size:0x118
 worldToTp                                = 0x80195fc8; // size:0x6C
 // `tmpResult` (static local of `HdPntTest`, emitted as `tmpResult.24`)
 // TODO: restore the original name once the bss is migrated to C
-hdp_tmpResult                            = 0x80196034;
+hdp_tmpResult                            = 0x80196034; // size:0x24
 ambient                                  = 0x80196064; // size:0xC
 lightRot                                 = 0x80196070; // size:0x24
 lightColor                               = 0x80196094; // size:0x24
 lightEnv                                 = 0x801960b8; // size:0x130
-toc.122                                  = 0x801961e8; // size:400
+soundToc                                  = 0x801961e8; // size:400
 gSoundEyeSpaceLoc                        = 0x80196378; // size:0xC
 gSoundEyeToSoundLoc                      = 0x80196384; // size:0xC
 soundVoiceTable                          = 0x80196390; // size:0x18
@@ -2632,8 +2628,8 @@ gTonePool                                = 0x801972dc; // size:0x120C
 gRequestQueue                            = 0x801984e8; // size:0x4EC
 gFinishingTonesList                      = 0x801989d4; // size:0x70
 GENERAL_HOVER_COPS_InflightBuffer        = 0x80198a4c;
-prim2D                                   = 0x80198a6c;
-pOut                                     = 0x80198a7c;
+prim2D                                   = 0x80198a6c; // size:0xC
+pOut                                     = 0x80198a7c; // size:0x14
 event                                    = 0x80198a90;
 updateRate                               = 0x80198a94; // type:u32
 swap                                     = 0x80198a98; // size:0x20
@@ -2856,3 +2852,13 @@ screenCardCenterX                        = 0x80170F44; // size:0x70
 screenCardCenterY                        = 0x80170FB4; // size:0x70
 screenCardHalfWidth                      = 0x80171024; // size:0x10
 screenCardHalfHeight                     = 0x80171034; // size:0x10
+
+sdSubPolyCount                           = 0x1F800038; // size:0x4
+sdSubPolyPtr                             = 0x1F80004C; // size:0x4
+sdMirrorView                             = 0x1F800088; // size:0x4
+sdDrawModeTag                           = 0x1F800060; // size:0x4
+sdDrawModeCode0                         = 0x1F800064; // size:0x4
+sdDrawModeCode1                         = 0x1F800068; // size:0x4
+sdDrawModeDitherTag                     = 0x1F80006C; // size:0x4
+sdDrawModeDitherCode0                   = 0x1F800070; // size:0x4
+sdDrawModeDitherCode1                   = 0x1F800074; // size:0x4

@@ -6,9 +6,9 @@
 #include "tm1/MATH.H"
 
 void BoundVector(VECTOR3* v);
-void BoundSVector(u16* v);
+void BoundSVector(SVECTOR* v);
 void BoundAngle(s32* a);
-void BoundSAngle(u16* a);
+void BoundSAngle(s16* a);
 s32 SmoothAngleValue(s32 from, s32 to, s32 pct);
 s32 SmoothValue(s32 from, s32 to, s32 pct);
 s32 SmoothValue2(s32 a, s32 b, s32 c);

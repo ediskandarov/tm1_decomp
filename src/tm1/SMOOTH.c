@@ -2,10 +2,6 @@
 
 #include "tm1/SMOOTH.H"
 
-// TODO: Determine what's going on with some of these functions.
-// They appear to be thunked, but also jump into each other.
-
-#ifdef NON_MATCHING
 void BoundVector(VECTOR3* v)
 {
     while (v->vx >= 2048) {
@@ -27,41 +23,29 @@ void BoundVector(VECTOR3* v)
         v->vz = v->vz + 4096;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", BoundVector);
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", func_80150DE8);
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", FUN_80150df8);
-#endif
 
-#ifdef NON_MATCHING
-void BoundSVector(u16* v)
+void BoundSVector(SVECTOR* v)
 {
-    while ((s16)v[0] >= 2048) {
-        v[0] = v[0] - 4096;
+    while (v->vx >= 2048) {
+        v->vx = v->vx - 4096;
     }
-    while ((s16)v[0] < -2048) {
-        v[0] = v[0] + 4096;
+    while (v->vx < -2048) {
+        v->vx = v->vx + 4096;
     }
-    while ((s16)v[1] >= 2048) {
-        v[1] = v[1] - 4096;
+    while (v->vy >= 2048) {
+        v->vy = v->vy - 4096;
     }
-    while ((s16)v[1] < -2048) {
-        v[1] = v[1] + 4096;
+    while (v->vy < -2048) {
+        v->vy = v->vy + 4096;
     }
-    while ((s16)v[2] >= 2048) {
-        v[2] = v[2] - 4096;
+    while (v->vz >= 2048) {
+        v->vz = v->vz - 4096;
     }
-    while ((s16)v[2] < -2048) {
-        v[2] = v[2] + 4096;
+    while (v->vz < -2048) {
+        v->vz = v->vz + 4096;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", BoundSVector);
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", func_80150EF8);
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", FUN_80150f08);
-#endif
 
-#ifdef NON_MATCHING
 void BoundAngle(s32* a)
 {
     while (a[0] >= 2048) {
@@ -71,27 +55,16 @@ void BoundAngle(s32* a)
         a[0] = a[0] + 4096;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", BoundAngle);
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", func_80151038);
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", FUN_80151048);
-#endif
 
-#ifdef NON_MATCHING
-void BoundSAngle(u16* a)
+void BoundSAngle(s16* a)
 {
-    while ((s16)a[0] >= 2048) {
+    while (a[0] >= 2048) {
         a[0] = a[0] - 4096;
     }
-    while ((s16)a[0] < -2048) {
+    while (a[0] < -2048) {
         a[0] = a[0] + 4096;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", BoundSAngle);
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", func_80151098);
-INCLUDE_ASM("asm/nonmatchings/tm1/SMOOTH", FUN_801510a8);
-#endif
 
 s32 SmoothAngleValue(s32 from, s32 to, s32 pct)
 {

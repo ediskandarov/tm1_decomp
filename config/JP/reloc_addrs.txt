@@ -7,3 +7,49 @@ rom:0x3E518 reloc:MIPS_LO16 symbol:HStand addend:-0xC
 
 rom:0x3DDC4 reloc:MIPS_HI16 symbol:flameThrower addend:0xC8
 rom:0x3DDC8 reloc:MIPS_LO16 symbol:flameThrower addend:0xC8
+
+rom:0x6EB8 reloc:MIPS_HI16 symbol:sdSubPolyPtr
+rom:0x6EBC reloc:MIPS_LO16 symbol:sdSubPolyPtr
+rom:0x6ED4 reloc:MIPS_HI16 symbol:sdMirrorView
+rom:0x6ED8 reloc:MIPS_LO16 symbol:sdMirrorView
+rom:0x6EE4 reloc:MIPS_HI16 symbol:sdMirrorView
+rom:0x6EE8 reloc:MIPS_LO16 symbol:sdMirrorView
+rom:0x6F14 reloc:MIPS_HI16 symbol:sdSubPolyCount
+rom:0x6F18 reloc:MIPS_LO16 symbol:sdSubPolyCount
+rom:0x6F30 reloc:MIPS_HI16 symbol:sdSubPolyCount
+rom:0x6F34 reloc:MIPS_LO16 symbol:sdSubPolyCount
+rom:0x7020 reloc:MIPS_HI16 symbol:sdSubPolyPtr
+rom:0x7024 reloc:MIPS_LO16 symbol:sdSubPolyPtr
+rom:0x7028 reloc:MIPS_HI16 symbol:sdMirrorView
+rom:0x702C reloc:MIPS_LO16 symbol:sdMirrorView
+rom:0x7038 reloc:MIPS_HI16 symbol:sdSubPolyCount
+rom:0x703C reloc:MIPS_LO16 symbol:sdSubPolyCount
+rom:0x704C reloc:MIPS_HI16 symbol:sdSubPolyCount
+rom:0x7050 reloc:MIPS_LO16 symbol:sdSubPolyCount
+rom:0x12018 reloc:MIPS_HI16 symbol:sdDrawModeTag
+rom:0x1201C reloc:MIPS_LO16 symbol:sdDrawModeTag
+rom:0x1202C reloc:MIPS_HI16 symbol:sdDrawModeCode0
+rom:0x12030 reloc:MIPS_LO16 symbol:sdDrawModeCode0
+rom:0x12040 reloc:MIPS_HI16 symbol:sdDrawModeCode1
+rom:0x12044 reloc:MIPS_LO16 symbol:sdDrawModeCode1
+rom:0x120EC reloc:MIPS_HI16 symbol:sdDrawModeDitherTag
+rom:0x120F0 reloc:MIPS_LO16 symbol:sdDrawModeDitherTag
+rom:0x12100 reloc:MIPS_HI16 symbol:sdDrawModeDitherCode0
+rom:0x12104 reloc:MIPS_LO16 symbol:sdDrawModeDitherCode0
+rom:0x12114 reloc:MIPS_HI16 symbol:sdDrawModeDitherCode1
+rom:0x12118 reloc:MIPS_LO16 symbol:sdDrawModeDitherCode1
+rom:0x12128 reloc:MIPS_HI16 symbol:sdDrawModeTag
+rom:0x1212C reloc:MIPS_LO16 symbol:sdDrawModeTag
+rom:0x1213C reloc:MIPS_HI16 symbol:sdDrawModeCode0
+rom:0x12140 reloc:MIPS_LO16 symbol:sdDrawModeCode0
+rom:0x12150 reloc:MIPS_HI16 symbol:sdDrawModeCode1
+rom:0x12154 reloc:MIPS_LO16 symbol:sdDrawModeCode1
+
+rom:0xF1E4 reloc:MIPS_NONE symbol:0
+rom:0xF234 reloc:MIPS_NONE symbol:0
+rom:0xF238 reloc:MIPS_NONE symbol:0
+
+rom:0x5C8D8 reloc:MIPS_NONE symbol:0
+rom:0x5C8F8 reloc:MIPS_NONE symbol:0
+rom:0x5C97C reloc:MIPS_NONE symbol:0
+rom:0x5C994 reloc:MIPS_NONE symbol:0
