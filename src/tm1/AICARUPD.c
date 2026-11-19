@@ -163,13 +163,12 @@ void AICarUpdateAttackProfile(AICar* car)
     }
 }
 
-#ifdef NON_MATCHING
 void AIPickAttackWeapon(AICar* car)
 {
     s16 lvl;
 
-    lvl = car->weap.ammo[WEAPON_SPECIAL];
     car->weap.cur = WEAPON_NONE;
+    lvl = car->weap.ammo[WEAPON_SPECIAL];
     if (lvl >= 6 && AIInSpecialParameters(car)) {
         if (rand() % 24 < car->weap.ammo[WEAPON_SPECIAL]) {
             car->weap.cur = WEAPON_SPECIAL;
@@ -193,14 +192,13 @@ void AIPickAttackWeapon(AICar* car)
         break;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/AICARUPD", AIPickAttackWeapon);
-#endif
 
-#ifdef NON_MATCHING
 u8 AIInSpecialParameters(AICar* car)
 {
-    switch (car->uaIndex) {
+    s32 value;
+
+    value = car->uaIndex;
+    switch (value) {
     case UA_ICE_CREAM_TRUCK:
     case UA_TAXI_CAB:
     case UA_SEMI_TRUCK:
@@ -218,7 +216,8 @@ u8 AIInSpecialParameters(AICar* car)
         }
         return car->direction == DIRECTION_REAR;
     default:
-        if (car->direction != DIRECTION_FRONT) {
+        value = car->direction;
+        if (value != DIRECTION_FRONT) {
             return 0;
         }
         return car->unk44 != 0;
@@ -226,15 +225,10 @@ u8 AIInSpecialParameters(AICar* car)
         return car->unk44 != 0;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/AICARUPD", AIInSpecialParameters);
-#endif
 
-#ifdef NON_MATCHING
 void AICarSetDefaultWeapons(AICar* car)
 {
     CarWeap* w;
-    CarRearProfile* rear;
     s32 special;
     s32 fore;
     s32 aft;
@@ -246,97 +240,131 @@ void AICarSetDefaultWeapons(AICar* car)
     w = &car->weap;
     switch (kind) {
     case UA_BOSS_CAR:
-        aft = BossAftChance;
-        fore = BossForeChance;
         special = BossSpecialChance;
+        fore = BossForeChance;
+        aft = BossAftChance;
         w->foreProfile = &BossProfileFront;
-        rear = &BossProfileRear;
-        goto join;
+        w->aftProfile = &BossProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_ICE_CREAM_TRUCK:
-        aft = IceCreamAftChance;
-        fore = IceCreamForeChance;
         special = IceCreamSpecialChance;
+        fore = IceCreamForeChance;
+        aft = IceCreamAftChance;
         w->foreProfile = &IceCreamProfileFront;
-        rear = &IceCreamProfileRear;
-        goto join;
+        w->aftProfile = &IceCreamProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_TAXI_CAB:
-        aft = TaxiAftChance;
-        fore = TaxiForeChance;
         special = TaxiSpecialChance;
+        fore = TaxiForeChance;
+        aft = TaxiAftChance;
         w->foreProfile = &TaxiProfileFront;
-        rear = &TaxiProfileRear;
-        goto join;
+        w->aftProfile = &TaxiProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_SEMI_TRUCK:
-        aft = SemiAftChance;
-        fore = SemiForeChance;
         special = SemiSpecialChance;
+        fore = SemiForeChance;
+        aft = SemiAftChance;
         w->foreProfile = &SemiProfileFront;
-        rear = &SemiProfileRear;
-        goto join;
+        w->aftProfile = &SemiProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_MONSTER_TRUCK:
-        aft = MonsterAftChance;
-        fore = MonsterForeChance;
         special = MonsterSpecialChance;
+        fore = MonsterForeChance;
+        aft = MonsterAftChance;
         w->foreProfile = &MonsterProfileFront;
-        rear = &MonsterProfileRear;
-        goto join;
+        w->aftProfile = &MonsterProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_POLICE_CAR:
-        aft = PoliceAftChance;
-        fore = PoliceForeChance;
         special = PoliceSpecialChance;
+        fore = PoliceForeChance;
+        aft = PoliceAftChance;
         w->foreProfile = &PoliceProfileFront;
-        rear = &PoliceProfileRear;
-        goto join;
+        w->aftProfile = &PoliceProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_LAMBORGHINI:
-        aft = LamborghiniAftChance;
-        fore = LamborghiniForeChance;
         special = LamborghiniSpecialChance;
+        fore = LamborghiniForeChance;
+        aft = LamborghiniAftChance;
         w->foreProfile = &LamborghiniProfileFront;
-        rear = &LamborghiniProfileRear;
-        goto join;
+        w->aftProfile = &LamborghiniProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_HUMVEE:
-        aft = HumveeAftChance;
-        fore = HumveeForeChance;
         special = HumveeSpecialChance;
+        fore = HumveeForeChance;
+        aft = HumveeAftChance;
         w->foreProfile = &HumveeProfileFront;
-        rear = &HumveeProfileRear;
-        goto join;
+        w->aftProfile = &HumveeProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_HARLEY:
-        aft = HarleyAftChance;
-        fore = HarleyForeChance;
         special = HarleySpecialChance;
+        fore = HarleyForeChance;
+        aft = HarleyAftChance;
         w->foreProfile = &HarleyProfileFront;
-        rear = &HarleyProfileRear;
-        goto join;
+        w->aftProfile = &HarleyProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_DUNE_BUGGY:
-        aft = DuneBuggyAftChance;
-        fore = DuneBuggyForeChance;
         special = DuneBuggySpecialChance;
+        fore = DuneBuggyForeChance;
+        aft = DuneBuggyAftChance;
         w->foreProfile = &DuneBuggyProfileFront;
-        rear = &DuneBuggyProfileRear;
-        goto join;
+        w->aftProfile = &DuneBuggyProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_LOW_RIDER:
-        aft = ImpalaAftChance;
-        fore = ImpalaForeChance;
         special = ImpalaSpecialChance;
+        fore = ImpalaForeChance;
+        aft = ImpalaAftChance;
         w->foreProfile = &ImpalaProfileFront;
-        rear = &ImpalaProfileRear;
-        goto join;
+        w->aftProfile = &ImpalaProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_CORVETTE:
-        aft = VetteAftChance;
-        fore = VetteForeChance;
         special = VetteSpecialChance;
+        fore = VetteForeChance;
+        aft = VetteAftChance;
         w->foreProfile = &VetteProfileFront;
-        rear = &VetteProfileRear;
-        goto join;
+        w->aftProfile = &VetteProfileRear;
+        w->specialChance = special;
+        w->foreChance = fore;
+        w->aftChance = aft;
+        break;
     case UA_MAD_MAX:
-        aft = MadMaxAftChance;
-        fore = MadMaxForeChance;
         special = MadMaxSpecialChance;
+        fore = MadMaxForeChance;
+        aft = MadMaxAftChance;
         w->foreProfile = &MadMaxProfileFront;
-        rear = &MadMaxProfileRear;
-    join:
-        w->aftProfile = rear;
+        w->aftProfile = &MadMaxProfileRear;
         w->specialChance = special;
         w->foreChance = fore;
         w->aftChance = aft;
@@ -350,6 +378,7 @@ void AICarSetDefaultWeapons(AICar* car)
         break;
     }
     diff = uaGetDifficulty();
+    /* Original bug: this tests the function address. */
     if (shellGetCurrentLevel == 0 && diff < DIFFICULTY_HARD) {
         w->foreChance = (s16)w->foreChance / 2;
         w->aftChance = (s16)w->aftChance / 2;
@@ -385,17 +414,13 @@ void AICarSetDefaultWeapons(AICar* car)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/AICARUPD", AICarSetDefaultWeapons);
-#endif
 
-#ifdef NON_MATCHING
 void AICarChooseForeWeapon(AICar* car)
 {
     s32 sum = 0;
     s16 roll = rand() % 100;
-    s32* p = &car->weap.foreProfile->fire;
     s32 i = WEAPON_FIRE_MISSILE;
+    s32* p = &car->weap.foreProfile->fire;
 
     do {
         sum += *p;
@@ -407,9 +432,6 @@ void AICarChooseForeWeapon(AICar* car)
         p++;
     } while (i <= WEAPON_POWER_MISSILE);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/AICARUPD", AICarChooseForeWeapon);
-#endif
 
 void AICarChooseAftWeapon(AICar* car)
 {

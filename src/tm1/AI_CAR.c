@@ -242,11 +242,9 @@ void AICarUpdateNextPtAngle(AICar* car)
     BoundAngle(&car->unk1C8);
 }
 
-#ifdef NON_MATCHING
 void AICarUpdateDrivingProfile(AICar* car)
 {
     s16 r;
-    s32 dur;
 
     if (car->routeVal > 0) {
         car->routeVal = car->routeVal - GetFieldsLastFrame();
@@ -258,15 +256,15 @@ void AICarUpdateDrivingProfile(AICar* car)
                 car->chosen = 0;
             }
             car->unk01 = 0;
-            dur = car->route[(s8)car->unk02].val;
+            car->routeVal = car->profile.route[car->unk02].val;
         } else {
             r = rand() % 100;
-            if (r < car->route[(s8)car->unk02].prio) {
+            if (r < car->profile.route[car->unk02].prio) {
                 car->unk01 = 0;
-                dur = car->route[(s8)car->unk02].val;
-            } else if (r < car->route[(s8)car->unk02].unk04) {
+                car->routeVal = car->profile.route[car->unk02].val;
+            } else if (r < car->profile.route[car->unk02].unk04) {
                 car->unk01 = 1;
-                dur = car->route[(s8)car->unk02].unk10;
+                car->routeVal = car->profile.route[car->unk02].unk10;
             } else {
                 goto tier3;
             }
@@ -274,13 +272,9 @@ void AICarUpdateDrivingProfile(AICar* car)
     } else {
     tier3:
         car->unk01 = 2;
-        dur = car->route[(s8)car->unk02].unk14;
+        car->routeVal = car->profile.route[car->unk02].unk14;
     }
-    car->routeVal = dur;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/AI_CAR", AICarUpdateDrivingProfile);
-#endif
 
 void AICarInitTransition(AICar* car)
 {
@@ -455,7 +449,7 @@ void AICarTurn(AICar* car)
         diff = car->motion.rot.vz - car->unk30;
         car->heliFlag = 1;
         if ((s8)car->stats.unk04 >= GetPlayerInfo(car->unk0E)->stats.unk108
-            && (s16)(rand() % 100) < car->attack[(s8)car->unk02].unk00) {
+            && (s16)(rand() % 100) < car->profile.attack[car->unk02].unk00) {
             car->unk48 = 1;
         } else {
             car->unk48 = 0;
@@ -815,37 +809,37 @@ u8 GetBeadOnPlayer(AICar* car, s32 range)
     return result;
 }
 
-#ifdef NON_MATCHING
 s32 GetBufferZoneSpeed(AICar* car)
 {
     PlayerCar* info;
     s32 diff;
     s32 t;
     s32 spd;
-
+    s32 result;
     info = GetPlayerInfo(car->unk0E);
     diff = car->motion.rot.vz - info->motion.rot.vz;
     BoundAngle(&diff);
     if (car->unk48 == 0) {
         t = diff;
-        if (t < 0) {
+        if (t < 0)
             t = -t;
-        }
         if (t < 1024 && info->motion.vel.vy > 0) {
-            return info->motion.vel.vy;
-        }
-        if (info->motion.vel.vy >= 0) {
-            spd = ABS(info->motion.vel.vy);
-            if (spd < ((GetFieldsLastFrame() * 190) / 100)) {
-                return (GetFieldsLastFrame() * 190) / 100;
+            result = info->motion.vel.vy;
+        } else if (info->motion.vel.vy >= 0) {
+            spd = abs(info->motion.vel.vy);
+            if (spd < (GetFieldsLastFrame() * 190) / 100) {
+                result = (GetFieldsLastFrame() * 190) / 100;
+            } else {
+                result = car->stats.unkB4;
             }
+        } else {
+            result = car->stats.unkB4;
         }
+    } else {
+        result = car->stats.unkB4;
     }
-    return car->stats.unkB4;
+    return result;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/AI_CAR", GetBufferZoneSpeed);
-#endif
 
 void AICarUpdateControlPad(AICar* car)
 {
@@ -915,47 +909,37 @@ void AICarInBattle(AICar* car)
 void UpdateAICarsInBattleLaneDist(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     AICar* car;
 
-    i = 0;
-    if (numAICarsInBattle > 0) {
-        do {
-            car = GetAICarInfo(aiCarsInBattle[i]);
-            if (uaUsingLanes()) {
-                if (i == 0) {
-                    if (car->unk18A >= 121) {
-                        car->unk184 = 56;
-                        car->unk16B = 1;
-                    } else {
-                        car->unk184 = 0;
-                        car->unk16B = 0;
-                    }
-                    car->unk16A = 0;
-                } else if (i == 1) {
-                    if (car->unk18A >= 121) {
-                        car->unk184 = -56;
-                        car->unk16A = 1;
-                    } else {
-                        car->unk184 = 0;
-                        car->unk16A = 0;
-                    }
-                    car->unk16B = 0;
+    for (i = 0; i < numAICarsInBattle; i++) {
+        car = GetAICarInfo(aiCarsInBattle[i]);
+        if (uaUsingLanes()) {
+            if (i == 0) {
+                if (car->unk18A >= 121) {
+                    car->unk184 = 56;
+                    car->unk16B = 1;
                 } else {
                     car->unk184 = 0;
                     car->unk16B = 0;
+                }
+                car->unk16A = 0;
+            } else if (i == 1) {
+                if (car->unk18A >= 121) {
+                    car->unk184 = -56;
+                    car->unk16A = 1;
+                } else {
+                    car->unk184 = 0;
                     car->unk16A = 0;
                 }
+                car->unk16B = 0;
             } else {
                 car->unk184 = 0;
+                car->unk16B = 0;
+                car->unk16A = 0;
             }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numAICarsInBattle;
-            i = t;
-        } while (t < n);
+        } else {
+            car->unk184 = 0;
+        }
     }
 }
 
@@ -992,7 +976,6 @@ void AICarUpdatePlayerDir(AICar* car)
     }
 }
 
-#ifdef NON_MATCHING
 void BringBackAICarInCollision(AICar* car)
 {
     u8 done;
@@ -1028,7 +1011,7 @@ void BringBackAICarInCollision(AICar* car)
                     car->motion.vel.vy = 0;
                 }
             } else {
-                car->motion.vel.vy = (car->stats.unkBC / 2) + car->motion.vel.vy;
+                car->motion.vel.vy += car->stats.unkBC / 2;
                 if (car->motion.vel.vy > 0) {
                     car->motion.vel.vy = 0;
                 }
@@ -1049,9 +1032,6 @@ void BringBackAICarInCollision(AICar* car)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/AI_CAR", BringBackAICarInCollision);
-#endif
 
 void AICarHeliUpdate(AICar* car)
 {
@@ -1141,24 +1121,14 @@ void AICarHeliUpdate(AICar* car)
 void UpdateNumAICarsInBattle(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     AICar* car;
 
-    i = 0;
-    if (numAICarsInBattle > 0) {
-        do {
-            car = GetAICarInfo(aiCarsInBattle[i]);
-            if (car->stats.unk40 <= 0) {
-                AICarOutOfBattle(car);
-                return;
-            }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numAICarsInBattle;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numAICarsInBattle; i++) {
+        car = GetAICarInfo(aiCarsInBattle[i]);
+        if (car->stats.unk40 <= 0) {
+            AICarOutOfBattle(car);
+            return;
+        }
     }
 }
 
@@ -1174,12 +1144,14 @@ void StartLostCheck(AICar* car)
     car->unk49 = 1;
 }
 
-Car* GetClosestCarToPlayer(s16 player, u8* isPlayer)
+Car* GetClosestCarToPlayer(s32 player, u8* isPlayer)
 {
     VECTOR3* pos;
     Car* car;
+    s16 playerIndex;
 
-    pos = &GetPlayerInfo(player)->motion.pos;
+    playerIndex = player;
+    pos = &GetPlayerInfo(playerIndex)->motion.pos;
     if (GetNumPlayers() == 1) {
         *isPlayer = 0;
         car = GetAICarInfo(GetClosestAICar(pos));
@@ -1189,7 +1161,7 @@ Car* GetClosestCarToPlayer(s16 player, u8* isPlayer)
         car = NULL;
     } else {
         *isPlayer = 1;
-        car = GetPlayerInfo(GetClosestPlayer(pos, player));
+        car = GetPlayerInfo(GetClosestPlayer(pos, playerIndex));
     }
     return car;
 }

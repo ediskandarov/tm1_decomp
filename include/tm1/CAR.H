@@ -213,9 +213,9 @@ typedef struct CarStats {
     /*0x104*/ s32 unk104;
     /*0x108*/ s32 unk108;
     /*0x10C*/ s32 unk10C;
-    /*0x110*/ u16 unk110;
+    /*0x110*/ s16 unk110;
     /*0x112*/ u16 unk112;
-    /*0x114*/ u16 unk114;
+    /*0x114*/ s16 unk114;
     /*0x116*/ u8 pad116[0x2];
     /*0x118*/ u16 dropPower;
     /*0x11A*/ s16 unk11A;
@@ -305,6 +305,11 @@ typedef struct CarAttack {
     /*0x06*/ s16 unk06;
 } CarAttack; /* 0x8 */
 
+typedef struct CarDrivingProfile {
+    CarAttack attack[4];
+    CarRoute route[4];
+} CarDrivingProfile; /* 0x80 */
+
 // Player car struct.
 typedef struct PlayerCar {
     /*0x000*/ u8 pad00;
@@ -340,7 +345,7 @@ typedef struct PlayerCar {
 typedef struct AICar {
     /*0x000*/ u8 driving;
     /*0x001*/ s8 unk01;
-    /*0x002*/ u8 unk02;
+    /*0x002*/ s8 unk02;
     /*0x003*/ u8 pad03;
     /*0x004*/ s8 unk04;
     /*0x005*/ u8 pad05;
@@ -377,8 +382,7 @@ typedef struct AICar {
     /*0x04D*/ u8 unk4D;
     /*0x04E*/ u8 skid[24];
     /*0x066*/ u8 flags[30];
-    /*0x084*/ CarAttack attack[4];
-    /*0x0A4*/ CarRoute route[4];
+    /*0x084*/ CarDrivingProfile profile;
     /*0x104*/ s8 unk104;
     /*0x105*/ s8 unk105;
     /*0x106*/ s8 unk106;

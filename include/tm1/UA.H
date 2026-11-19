@@ -248,7 +248,7 @@ void UASetHelicoptorMode(s32 unused, u8 mode);
 void InitPlayerCar(s16 slot, s32 car, u8 flag);
 void SetCarCsInfo(s16 slot, s16 idx, s32 car, u8 found);
 void UASetAICar(s16 slot, s32 car);
-void SetAICarCsInfo(s16 slot, s16 idx, s32 car, u8 found);
+void SetAICarCsInfo(s16 slot, s16 idx, s32 car);
 void PlayGame(void);
 u8 CheckPlayerHealthStand(s32 player);
 void UpdatePlayerDamageModel(s16 player);

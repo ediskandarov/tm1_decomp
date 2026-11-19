@@ -399,12 +399,12 @@ void UpdateGuns(Car* car, u8 isPlayer)
         // Keep muzzle setup together to preserve PsyQ's load scheduling.
         do {
             if (pad->unk04 != 0) {
-                v.vx = -(s16)cfg->unk110;
+                v.vx = -cfg->unk110;
             } else {
-                v.vx = (s16)cfg->unk110;
+                v.vx = cfg->unk110;
             }
             v.vy = (s16)cfg->unk112;
-            v.vz = (s16)cfg->unk114;
+            v.vz = cfg->unk114;
         } while (0);
         mat = &m->mat2;
         pad->unk04 = 1 - pad->unk04;
@@ -719,9 +719,9 @@ void FireSpecials(Car* car, u8 isPlayer)
             d.vz = d.vz + m->pos.vz;
             res = create_SWARM_missile(idx, tgt, &m->rot, &d, damage70);
             count = res >= 0;
-            v.vx = (s16)cfg->unk110;
+            v.vx = cfg->unk110;
             v.vy = (s16)cfg->unk112;
-            v.vz = (s16)cfg->unk114;
+            v.vz = cfg->unk114;
             mathMulTransVec(mat2, &v, &d);
             d.vx = d.vx + m->pos.vx;
             d.vy = d.vy + m->pos.vy;
@@ -729,9 +729,9 @@ void FireSpecials(Car* car, u8 isPlayer)
             if (create_SWARM_missile(idx, tgt, &m->rot, &d, damage70) >= 0) {
                 count = count + 1;
             }
-            v.vx = -(s16)cfg->unk110;
+            v.vx = -cfg->unk110;
             v.vy = (s16)cfg->unk112;
-            v.vz = (s16)cfg->unk114;
+            v.vz = cfg->unk114;
             mathMulTransVec(mat2, &v, &d);
             d.vx = d.vx + m->pos.vx;
             d.vy = d.vy + m->pos.vy;

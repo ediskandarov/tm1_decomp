@@ -1,5 +1,7 @@
 #include "common.h"
 
+#include <ABS.H>
+#include <LIBGPU.H>
 #include <LIBGTE.H>
 
 #include "tm1/AI_CAR.H"
@@ -18,7 +20,6 @@
 
 extern MATRIX D_80170D94;
 
-#ifdef NON_MATCHING
 void CarInit(PlayerCar* car, s32 uaIndex, u8 which)
 {
     car->uaIndex = uaIndex;
@@ -28,11 +29,13 @@ void CarInit(PlayerCar* car, s32 uaIndex, u8 which)
     if (which) {
         InitWeapons(car, &car->weap, 1);
         car->stats.unkF8 = 0;
+        car->weap.gunHeat = 0;
+        car->weap.gunOverheat = 0;
     } else {
         car->weap.ammo[WEAPON_SPECIAL] = 20;
+        car->weap.gunHeat = 0;
+        car->weap.gunOverheat = 0;
     }
-    car->weap.gunHeat = 0;
-    car->weap.gunOverheat = 0;
     CarInitVRModes(car);
     car->unkC0 = 0;
     SetBounce(car, 2, 2, 0, 1);
@@ -45,9 +48,6 @@ void CarInit(PlayerCar* car, s32 uaIndex, u8 which)
     car->stats.cheatBArmed = 0;
     car->stats.unk01 = 0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", CarInit);
-#endif
 
 void CarInitDynamics(PlayerCar* car)
 {
@@ -226,7 +226,6 @@ void InitWeapons(Car* car, CarWeap* weap, u8 isPlayer)
     carInitTasers();
 }
 
-#ifdef NON_MATCHING
 void InitPlayerPositions(PlayerCar* car, u8 isP1)
 {
     switch (shellGetCurrentLevel()) {
@@ -237,26 +236,24 @@ void InitPlayerPositions(PlayerCar* car, u8 isP1)
             car->motion.pos.vx = 0x460;
             car->motion.pos.vy = 0x460;
             car->motion.rot.vz = 0x200;
-            car->motion.pos.vz = 0;
         } else {
             car->motion.pos.vx = 0xE60;
             car->motion.pos.vy = 0xE60;
             car->motion.rot.vz = -0x600;
-            car->motion.pos.vz = 0;
         }
+        car->motion.pos.vz = 0;
         break;
     case LEVEL2_WAREHOUSE:
         if (isP1) {
             car->motion.pos.vx = -0x28A0;
             car->motion.pos.vy = -0x11D0;
             car->motion.rot.vz = 0xC1;
-            car->motion.pos.vz = 0;
         } else {
             car->motion.pos.vx = -0x2580;
             car->motion.pos.vy = 0x960;
             car->motion.rot.vz = -0x400;
-            car->motion.pos.vz = 0;
         }
+        car->motion.pos.vz = 0;
         break;
     case LEVEL3_FREEWAY:
         if (isP1) {
@@ -264,26 +261,23 @@ void InitPlayerPositions(PlayerCar* car, u8 isP1)
                 car->motion.pos.vx = 0x1C20;
                 car->motion.pos.vy = -0x2390;
                 car->motion.rot.vz = 0x400;
-                car->motion.pos.vz = 0;
             } else {
                 car->motion.pos.vx = -0x4110;
                 car->motion.pos.vy = 0x1F40;
                 car->motion.rot.vz = 0x800;
-                car->motion.pos.vz = 0;
             }
         } else {
             if (rtIsSplitScreenOn() == 0) {
                 car->motion.pos.vx = 0x2BC0;
                 car->motion.pos.vy = -0x2390;
                 car->motion.rot.vz = -0x400;
-                car->motion.pos.vz = 0;
             } else {
                 car->motion.pos.vx = -0x40E8;
                 car->motion.pos.vy = -0x17C0;
                 car->motion.rot.vz = 0;
-                car->motion.pos.vz = 0;
             }
         }
+        car->motion.pos.vz = 0;
         break;
     case LEVEL4_CITY_PARK:
         if (isP1) {
@@ -291,26 +285,23 @@ void InitPlayerPositions(PlayerCar* car, u8 isP1)
                 car->motion.pos.vx = 0x12C0;
                 car->motion.pos.vy = -0x12C0;
                 car->motion.rot.vz = 0;
-                car->motion.pos.vz = 0;
             } else {
                 car->motion.pos.vx = 0x2580;
                 car->motion.pos.vy = 0xC0;
                 car->motion.rot.vz = -0x400;
-                car->motion.pos.vz = 0;
             }
         } else {
             if (rtIsSplitScreenOn() == 0) {
                 car->motion.pos.vx = -0xB60;
                 car->motion.pos.vy = -0x960;
                 car->motion.rot.vz = -0x400;
-                car->motion.pos.vz = 0;
             } else {
                 car->motion.pos.vx = 0x12C0;
                 car->motion.pos.vy = 0xC0;
                 car->motion.rot.vz = 0x400;
-                car->motion.pos.vz = 0;
             }
         }
+        car->motion.pos.vz = 0;
         break;
     case LEVEL5_CYBURBIA:
         if (isP1) {
@@ -318,26 +309,23 @@ void InitPlayerPositions(PlayerCar* car, u8 isP1)
                 car->motion.pos.vx = 0x1C20;
                 car->motion.pos.vy = 0x2EE0;
                 car->motion.rot.vz = 0x400;
-                car->motion.pos.vz = 0;
             } else {
                 car->motion.pos.vx = 0x3EA0;
                 car->motion.pos.vy = 0x1EF0;
                 car->motion.rot.vz = 0x400;
-                car->motion.pos.vz = 0;
             }
         } else {
             if (rtIsSplitScreenOn() == 0) {
                 car->motion.pos.vx = 0x12C0;
                 car->motion.pos.vy = 0x4B0;
                 car->motion.rot.vz = 0;
-                car->motion.pos.vz = 0;
             } else {
                 car->motion.pos.vx = 0x3DE0;
                 car->motion.pos.vy = 0x690;
                 car->motion.rot.vz = 0x400;
-                car->motion.pos.vz = 0;
             }
         }
+        car->motion.pos.vz = 0;
         break;
     case LEVEL6_ROOFTOPS:
         if (isP1) {
@@ -356,54 +344,33 @@ void InitPlayerPositions(PlayerCar* car, u8 isP1)
     car->motion.rotDelta.vy = 0;
     car->motion.rotDelta.vz = 0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitPlayerPositions);
-#endif
 
-#ifdef NON_MATCHING
 void InitHitPoints(Car* car, u8 isPlayer)
 {
     CarStats* stats;
     Cs* cs;
+    s16 index;
 
     if (isPlayer) {
+        index = PLAYER_CAR(car)->playerIdx;
         stats = &PLAYER_CAR(car)->stats;
-        cs = GetPlayerCs3D(PLAYER_CAR(car)->playerIdx);
+        cs = GetPlayerCs3D(index);
     } else {
+        index = AI_CAR(car)->playerIdx;
         stats = &AI_CAR(car)->stats;
-        cs = GetAICs3D(AI_CAR(car)->playerIdx);
+        cs = GetAICs3D(index);
     }
     cs->nhist = 5;
-    cs->hist[0].vx = -stats->unk74 / 2;
-    cs->hist[0].vy = stats->unk80;
-    cs->hist[0].vz = 24 - stats->unk6C;
-    cs->hist[1].vx = stats->unk74 / 2;
-    cs->hist[1].vy = stats->unk80;
-    cs->hist[1].vz = 24 - stats->unk6C;
-    cs->hist[2].vx = stats->unk74 / 2;
-    cs->hist[2].vy = stats->unk84;
-    cs->hist[2].vz = 24 - stats->unk6C;
-    cs->hist[3].vx = -stats->unk74 / 2;
-    cs->hist[3].vy = stats->unk84;
-    cs->hist[3].vz = 24 - stats->unk6C;
-    cs->hist[4].vx = 0;
-    cs->hist[4].vy = stats->unk80;
-    cs->hist[4].vz = 24 - stats->unk6C;
-    cs->hist[5].vx = 0;
-    cs->hist[5].vy = stats->unk84;
-    cs->hist[5].vz = 24 - stats->unk6C;
-    cs->hist[6].vx = -stats->unk74 / 2;
-    cs->hist[6].vy = 0;
-    cs->hist[6].vz = 24 - stats->unk6C;
-    cs->hist[7].vx = stats->unk74 / 2;
-    cs->hist[7].vy = 0;
-    cs->hist[7].vz = 24 - stats->unk6C;
+    setVector(&cs->hist[0], -stats->unk74 / 2, stats->unk80, 24 - stats->unk6C);
+    setVector(&cs->hist[1], stats->unk74 / 2, stats->unk80, 24 - stats->unk6C);
+    setVector(&cs->hist[2], stats->unk74 / 2, stats->unk84, 24 - stats->unk6C);
+    setVector(&cs->hist[3], -stats->unk74 / 2, stats->unk84, 24 - stats->unk6C);
+    setVector(&cs->hist[4], 0, stats->unk80, 24 - stats->unk6C);
+    setVector(&cs->hist[5], 0, stats->unk84, 24 - stats->unk6C);
+    setVector(&cs->hist[6], -stats->unk74 / 2, 0, 24 - stats->unk6C);
+    setVector(&cs->hist[7], stats->unk74 / 2, 0, 24 - stats->unk6C);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitHitPoints);
-#endif
 
-#ifdef NON_MATCHING
 void CarInitDeltas(CarStats* stats, s32 uaIndex)
 {
     s32 x;
@@ -473,21 +440,13 @@ void CarInitDeltas(CarStats* stats, s32 uaIndex)
     }
     x = stats->unk80;
     y = stats->unk84;
-    if (x < 0) {
-        x = -x;
-    }
-    if (y < 0) {
-        y = -y;
-    }
+    x = ABS(x);
+    y = ABS(y);
     stats->unk78 = x + y;
     RecomputeCarDeltas(stats);
     stats->updateRate = 60;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", CarInitDeltas);
-#endif
 
-#ifdef NON_MATCHING
 void InitIceCreamTruck(CarStats* stats)
 {
     stats->unk9C = 5;
@@ -520,11 +479,7 @@ void InitIceCreamTruck(CarStats* stats)
     stats->unk5C = 7;
     stats->unk24 = 0x258;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitIceCreamTruck);
-#endif
 
-#ifdef NON_MATCHING
 void InitSemiTruck(CarStats* stats)
 {
     stats->unk9C = 4;
@@ -559,11 +514,7 @@ void InitSemiTruck(CarStats* stats)
     stats->unk5C = 6;
     stats->unk24 = 0x258;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitSemiTruck);
-#endif
 
-#ifdef NON_MATCHING
 void InitTaxiCab(CarStats* stats)
 {
     stats->unk9C = 0xA;
@@ -597,11 +548,7 @@ void InitTaxiCab(CarStats* stats)
     stats->unk5C = 7;
     stats->unk24 = 0x2D0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitTaxiCab);
-#endif
 
-#ifdef NON_MATCHING
 void InitMonsterTruck(CarStats* stats)
 {
     stats->unk9C = 0xA;
@@ -637,11 +584,7 @@ void InitMonsterTruck(CarStats* stats)
     stats->unk24 = 0x258;
     stats->monster = 1;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitMonsterTruck);
-#endif
 
-#ifdef NON_MATCHING
 void InitLamborghini(CarStats* stats)
 {
     stats->unk9C = 0xD;
@@ -675,11 +618,7 @@ void InitLamborghini(CarStats* stats)
     stats->unk5C = 0x14;
     stats->unk24 = 0x370;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitLamborghini);
-#endif
 
-#ifdef NON_MATCHING
 void InitPoliceCar(CarStats* stats)
 {
     stats->unk9C = 5;
@@ -713,11 +652,7 @@ void InitPoliceCar(CarStats* stats)
     stats->unk5C = 6;
     stats->unk24 = 0x320;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitPoliceCar);
-#endif
 
-#ifdef NON_MATCHING
 void InitDuneBuggy(CarStats* stats)
 {
     stats->unk9C = 5;
@@ -751,11 +686,7 @@ void InitDuneBuggy(CarStats* stats)
     stats->unk5C = 5;
     stats->unk24 = 0x280;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitDuneBuggy);
-#endif
 
-#ifdef NON_MATCHING
 void InitHumvee(CarStats* stats)
 {
     stats->unk9C = 6;
@@ -790,11 +721,7 @@ void InitHumvee(CarStats* stats)
     stats->unk5C = 0xF;
     stats->unk24 = 0x230;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitHumvee);
-#endif
 
-#ifdef NON_MATCHING
 void InitLowRider(CarStats* stats)
 {
     stats->unk9C = 5;
@@ -828,11 +755,7 @@ void InitLowRider(CarStats* stats)
     stats->unk5C = 6;
     stats->unk24 = 0x320;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitLowRider);
-#endif
 
-#ifdef NON_MATCHING
 void InitMadMax(CarStats* stats)
 {
     stats->unk9C = 6;
@@ -866,11 +789,7 @@ void InitMadMax(CarStats* stats)
     stats->unk5C = 0xA;
     stats->unk24 = 0x2F8;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitMadMax);
-#endif
 
-#ifdef NON_MATCHING
 void InitHarley(CarStats* stats)
 {
     stats->unk9C = 7;
@@ -904,11 +823,7 @@ void InitHarley(CarStats* stats)
     stats->unk5C = 0xF;
     stats->unk24 = 0x2D0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitHarley);
-#endif
 
-#ifdef NON_MATCHING
 void InitCorvette(CarStats* stats)
 {
     stats->unk9C = 0xA;
@@ -942,11 +857,7 @@ void InitCorvette(CarStats* stats)
     stats->unk5C = 0xD;
     stats->unk24 = 0x348;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitCorvette);
-#endif
 
-#ifdef NON_MATCHING
 void InitBossCar(CarStats* stats)
 {
     stats->unk9C = 5;
@@ -980,11 +891,7 @@ void InitBossCar(CarStats* stats)
     stats->unk5C = 0x14;
     stats->unk24 = 0x348;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitBossCar);
-#endif
 
-#ifdef NON_MATCHING
 void InitHeliCar(CarStats* stats)
 {
     stats->unk9C = 5;
@@ -1019,9 +926,6 @@ void InitHeliCar(CarStats* stats)
     stats->unk5C = 0x1A;
     stats->unk24 = 0x320;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", InitHeliCar);
-#endif
 
 void CarInitTweeking(void)
 {
@@ -1117,15 +1021,15 @@ void CarInitVRModes(PlayerCar* car)
     car->vrRot[3].vz = 0;
 }
 
-#ifdef NON_MATCHING
 void RecomputeCarDeltas(CarStats* stats)
 {
-    s32 rate;
+    s16 rate;
     s32 k;
+    s32 strengthScale;
 
     stats->unkA0 = stats->unk9C;
-    k = stats->unkFC * 6;
-    stats->unkA4 = stats->unkA0 * k / 100;
+    strengthScale = stats->unkFC * 6;
+    stats->unkA4 = stats->unkA0 * strengthScale / 100;
     stats->unkBC = stats->unkA0 * stats->unkC4;
     if (stats->unk00 == 0) {
         stats->unkA4 = stats->unkA4 / 2;
@@ -1150,19 +1054,16 @@ void RecomputeCarDeltas(CarStats* stats)
     }
     stats->unkD8 = stats->unkD4 / 2;
     k = GetFieldsLastFrame() * 19;
-    stats->unkA8 = stats->unk88 * k / 100 * (stats->unkFC * 32) / 100;
+    stats->unkA8 = stats->unk88 * k / 100 * (stats->unkFC << 5) / 100;
     k = GetFieldsLastFrame() * 19;
-    stats->unkB8 = stats->unk8C * k / 100 * (stats->unkFC * 32) / 100;
+    stats->unkB8 = stats->unk8C * k / 100 * (stats->unkFC << 5) / 100;
     k = GetFieldsLastFrame() * 19;
-    stats->unkB0 = stats->unk90 * k / 100 * (stats->unkFC * 32) / 100;
+    stats->unkB0 = stats->unk90 * k / 100 * (stats->unkFC << 5) / 100;
     k = GetFieldsLastFrame() * 19;
-    stats->unkB4 = stats->unk94 * k / 100 * (stats->unkFC * 32) / 100;
+    stats->unkB4 = stats->unk94 * k / 100 * (stats->unkFC << 5) / 100;
     k = GetFieldsLastFrame() * 19;
-    stats->unkC0 = stats->unk98 * k / 100 * (stats->unkFC * 32) / 100;
+    stats->unkC0 = stats->unk98 * k / 100 * (stats->unkFC << 5) / 100;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/CAR_INIT", RecomputeCarDeltas);
-#endif
 
 void CarInitStrength(CarStats* stats, s32 strength)
 {

@@ -35,7 +35,7 @@ void AICarHeliUpdate(AICar* car);
 void UpdateNumAICarsInBattle(void);
 s16 GetNumAICarsInBattle(void);
 void StartLostCheck(AICar* car);
-Car* GetClosestCarToPlayer(s16 player, u8* isPlayer);
+Car* GetClosestCarToPlayer(s32 player, u8* isPlayer);
 void InitControlPad(u8* pad);
 void TermAICar(void);
 void InitAICarsInBattle(void);

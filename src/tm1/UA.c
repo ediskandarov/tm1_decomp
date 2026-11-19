@@ -211,7 +211,6 @@ void UASetBattleMusicOn(void)
     gBattleMusicOn = 1;
 }
 
-#ifdef NON_MATCHING
 void UAAddCs(Cs* cs, s32 name)
 {
     Cs** pcs;
@@ -220,7 +219,8 @@ void UAAddCs(Cs* cs, s32 name)
     s16 n;
 
     if (numCs < 12) {
-        pcs = &carCs[numCs];
+        pcs = carCs;
+        pcs += numCs;
         pname = &carName[numCs];
         *pcs = cs;
         *pname = name;
@@ -228,12 +228,10 @@ void UAAddCs(Cs* cs, s32 name)
         n = numCs;
         ptype = &carTypes[n];
         *ptype = 2;
-        numCs = n + 1;
+        n++;
+        numCs = n;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", UAAddCs);
-#endif
 
 void uaInit(void)
 {
@@ -290,8 +288,6 @@ void uaInitDB(u32 level)
 {
     s16 i;
     Cs* cs;
-    s16 t;
-    s32 n;
 
     hudInitRadar();
     if (rtIsSplitScreenOn()) {
@@ -300,28 +296,12 @@ void uaInitDB(u32 level)
         twoPlayerMode = 0;
     }
     UASetNumPlayers(twoPlayerMode ? 2 : 1);
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            playerInfo[i].stats.nVisibleChild = 1;
-            InitPlayerCar(i, playerCar[i], 1);
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numPlayers; i++) {
+        playerInfo[i].stats.nVisibleChild = 1;
+        InitPlayerCar(i, playerCar[i], 1);
     }
-    i = 0;
-    if (numCs > 0) {
-        do {
-            uaswInitCarSwitch(carCs[i], carName[i]);
-            t = i + 1;
-            do {
-            } while (0);
-            n = numCs;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numCs; i++) {
+        uaswInitCarSwitch(carCs[i], carName[i]);
     }
     InitAICarsInBattle();
     switch (level) {
@@ -349,21 +329,13 @@ void uaInitDB(u32 level)
     if (!twoPlayerMode) {
         uaPickAICars(level);
     }
-    i = 0;
-    if (numTargets > 0) {
-        do {
-            cs = GetAICs3D(aiCarInfo[i].playerIdx);
-            if (cs != NULL) {
-                aiCarInfo[i].stats.nVisibleChild = cs->epNode->grp.nChild;
-            } else {
-                aiCarInfo[i].stats.nVisibleChild = 1;
-            }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numTargets;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numTargets; i++) {
+        cs = GetAICs3D(aiCarInfo[i].playerIdx);
+        if (cs != NULL) {
+            aiCarInfo[i].stats.nVisibleChild = cs->epNode->grp.nChild;
+        } else {
+            aiCarInfo[i].stats.nVisibleChild = 1;
+        }
     }
     srand(GetCurTics());
 }
@@ -675,8 +647,6 @@ void InitLevel6DBSpecifics(void)
 void InitLevel(u32 level)
 {
     s16 i;
-    s16 t;
-    s32 n;
 
     switch (level) {
     case LEVEL1_ARENA:
@@ -703,35 +673,19 @@ void InitLevel(u32 level)
         break;
     }
     uaInitWeapons(0);
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            if (playerInfo[i].flags[25] != 0) {
-                uaswSetCarShadow(playerInfo[i].uaIndex, 1);
-            } else {
-                uaswSetCarShadow(playerInfo[i].uaIndex, 0);
-            }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numPlayers; i++) {
+        if (playerInfo[i].flags[25] != 0) {
+            uaswSetCarShadow(playerInfo[i].uaIndex, 1);
+        } else {
+            uaswSetCarShadow(playerInfo[i].uaIndex, 0);
+        }
     }
-    i = 0;
-    if (numTargets > 0) {
-        do {
-            if (aiCarInfo[i].flags[25] != 0) {
-                uaswSetCarShadow(aiCarInfo[i].uaIndex, 1);
-            } else {
-                uaswSetCarShadow(aiCarInfo[i].uaIndex, 0);
-            }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numTargets;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numTargets; i++) {
+        if (aiCarInfo[i].flags[25] != 0) {
+            uaswSetCarShadow(aiCarInfo[i].uaIndex, 1);
+        } else {
+            uaswSetCarShadow(aiCarInfo[i].uaIndex, 0);
+        }
     }
     viewSetParent(camera[0], 0);
     if (camera[1] != NULL) {
@@ -743,12 +697,9 @@ void InitLevel(u32 level)
     srand(GetCurTics());
 }
 
-#ifdef NON_MATCHING
 void InitUALevel1(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     LightEnv* e;
     Cs* cs;
 
@@ -757,272 +708,167 @@ void InitUALevel1(void)
     InitTriggerPoint(&helicoptor);
     helicoptor.unk01 = 0;
     InitAICarsInBattle();
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
-            if (rtIsSplitScreenOn()) {
-                playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
-                playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
-                playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
-                playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
-                playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
-                playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
-            } else {
-                SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
-                if (playerInfo[i].unkF4 == VR_MODE_HELICOPTER) {
-                    InitHelicoptorPosition();
-                }
+    for (i = 0; i < numPlayers; i++) {
+        CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
+        if (rtIsSplitScreenOn()) {
+            playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
+            playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
+            playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
+            playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
+            playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
+            playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
+        } else {
+            SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+            if (playerInfo[i].unkF4 == VR_MODE_HELICOPTER) {
+                InitHelicoptorPosition();
             }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+        }
     }
-    i = 0;
-    if (numCs > 0) {
-        do {
-            uaswCarHeadlightsOnOff(carName[i], gVar348);
-            e = lightGetEnv(0);
-            cs = carCs[i];
-            do {
-            } while (0);
-            n = numCs;
-            cs->env = e;
-            t = i + 1;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numCs; i++) {
+        uaswCarHeadlightsOnOff(carName[i], gVar348);
+        e = lightGetEnv(0);
+        cs = carCs[i];
+
+        cs->env = e;
     }
     soundSetReverbOff();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", InitUALevel1);
-#endif
 
-#ifdef NON_MATCHING
 void InitUALevel2(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     LightEnv* e;
     Cs* cs;
 
     InitAICarsInBattle();
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
-            if (rtIsSplitScreenOn()) {
-                playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
-                playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
-                playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
-                playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
-                playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
-                playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
-            } else {
-                if (playerInfo[i].unkF8 == VR_MODE_HELICOPTER) {
-                    playerInfo[i].unkF8 = VR_MODE_UNK_2;
-                }
-                SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+    for (i = 0; i < numPlayers; i++) {
+        CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
+        if (rtIsSplitScreenOn()) {
+            playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
+            playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
+            playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
+            playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
+            playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
+            playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
+        } else {
+            if (playerInfo[i].unkF8 == VR_MODE_HELICOPTER) {
+                playerInfo[i].unkF8 = VR_MODE_UNK_2;
             }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+            SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+        }
     }
-    i = 0;
-    if (numCs > 0) {
-        do {
-            uaswCarHeadlightsOnOff(carName[i], gVar348);
-            e = lightGetEnv(0);
-            cs = carCs[i];
-            do {
-            } while (0);
-            n = numCs;
-            cs->env = e;
-            t = i + 1;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numCs; i++) {
+        uaswCarHeadlightsOnOff(carName[i], gVar348);
+        e = lightGetEnv(0);
+        cs = carCs[i];
+
+        cs->env = e;
     }
     soundSetReverbOff();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", InitUALevel2);
-#endif
 
-#ifdef NON_MATCHING
 void InitUALevel3(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     LightEnv* e;
     Cs* cs;
 
     InitAICarsInBattle();
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
-            if (rtIsSplitScreenOn()) {
-                playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
-                playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
-                playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
-                playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
-                playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
-                playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
-            } else {
-                if (playerInfo[i].unkF8 == VR_MODE_HELICOPTER) {
-                    playerInfo[i].unkF8 = VR_MODE_UNK_2;
-                }
-                SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+    for (i = 0; i < numPlayers; i++) {
+        CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
+        if (rtIsSplitScreenOn()) {
+            playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
+            playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
+            playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
+            playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
+            playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
+            playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
+        } else {
+            if (playerInfo[i].unkF8 == VR_MODE_HELICOPTER) {
+                playerInfo[i].unkF8 = VR_MODE_UNK_2;
             }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+            SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+        }
     }
-    i = 0;
-    if (numCs > 0) {
-        do {
-            uaswCarHeadlightsOnOff(carName[i], gVar348);
-            e = lightGetEnv(0);
-            cs = carCs[i];
-            do {
-            } while (0);
-            n = numCs;
-            cs->env = e;
-            t = i + 1;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numCs; i++) {
+        uaswCarHeadlightsOnOff(carName[i], gVar348);
+        e = lightGetEnv(0);
+        cs = carCs[i];
+
+        cs->env = e;
     }
     soundSetReverbOff();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", InitUALevel3);
-#endif
 
-#ifdef NON_MATCHING
 void InitUALevel4(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     LightEnv* e;
     Cs* cs;
 
     InitAICarsInBattle();
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
-            if (rtIsSplitScreenOn()) {
-                playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
-                playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
-                playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
-                playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
-                playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
-                playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
-            } else {
-                if (playerInfo[i].unkF8 == VR_MODE_HELICOPTER) {
-                    playerInfo[i].unkF8 = VR_MODE_UNK_2;
-                }
-                SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+    for (i = 0; i < numPlayers; i++) {
+        CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
+        if (rtIsSplitScreenOn()) {
+            playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
+            playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
+            playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
+            playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
+            playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
+            playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
+        } else {
+            if (playerInfo[i].unkF8 == VR_MODE_HELICOPTER) {
+                playerInfo[i].unkF8 = VR_MODE_UNK_2;
             }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+            SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+        }
     }
-    i = 0;
-    if (numCs > 0) {
-        do {
-            uaswCarHeadlightsOnOff(carName[i], gVar348);
-            e = lightGetEnv(0);
-            cs = carCs[i];
-            do {
-            } while (0);
-            n = numCs;
-            cs->env = e;
-            t = i + 1;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numCs; i++) {
+        uaswCarHeadlightsOnOff(carName[i], gVar348);
+        e = lightGetEnv(0);
+        cs = carCs[i];
+
+        cs->env = e;
     }
     soundSetReverbOff();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", InitUALevel4);
-#endif
 
-#ifdef NON_MATCHING
 void InitUALevel5(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     LightEnv* e;
     Cs* cs;
 
     InitAICarsInBattle();
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
-            if (rtIsSplitScreenOn()) {
-                playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
-                playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
-                playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
-                playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
-                playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
-                playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
-            } else {
-                if (playerInfo[i].unkF8 == VR_MODE_HELICOPTER) {
-                    playerInfo[i].unkF8 = VR_MODE_UNK_2;
-                }
-                SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+    for (i = 0; i < numPlayers; i++) {
+        CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
+        if (rtIsSplitScreenOn()) {
+            playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
+            playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
+            playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
+            playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
+            playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
+            playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
+        } else {
+            if (playerInfo[i].unkF8 == VR_MODE_HELICOPTER) {
+                playerInfo[i].unkF8 = VR_MODE_UNK_2;
             }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+            SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+        }
     }
-    i = 0;
-    if (numCs > 0) {
-        do {
-            uaswCarHeadlightsOnOff(carName[i], gVar348);
-            e = lightGetEnv(0);
-            cs = carCs[i];
-            do {
-            } while (0);
-            n = numCs;
-            cs->env = e;
-            t = i + 1;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numCs; i++) {
+        uaswCarHeadlightsOnOff(carName[i], gVar348);
+        e = lightGetEnv(0);
+        cs = carCs[i];
+
+        cs->env = e;
     }
     soundSetReverbOff();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", InitUALevel5);
-#endif
 
-#ifdef NON_MATCHING
 void InitUALevel6(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     LightEnv* e;
     Cs* cs;
 
@@ -1031,56 +877,35 @@ void InitUALevel6(void)
     InitTriggerPoint(&helicoptor);
     helicoptor.unk01 = 0;
     InitAICarsInBattle();
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
-            if (rtIsSplitScreenOn()) {
-                playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
-                playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
-                playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
-                playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
-                playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
-                playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
-            } else {
-                SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
-                if (playerInfo[i].unkF4 == VR_MODE_HELICOPTER) {
-                    InitHelicoptorPosition();
-                }
+    for (i = 0; i < numPlayers; i++) {
+        CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
+        if (rtIsSplitScreenOn()) {
+            playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
+            playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
+            playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
+            playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
+            playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
+            playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
+        } else {
+            SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+            if (playerInfo[i].unkF4 == VR_MODE_HELICOPTER) {
+                InitHelicoptorPosition();
             }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+        }
     }
-    i = 0;
-    if (numCs > 0) {
-        do {
-            uaswCarHeadlightsOnOff(carName[i], gVar348);
-            e = lightGetEnv(0);
-            cs = carCs[i];
-            do {
-            } while (0);
-            n = numCs;
-            cs->env = e;
-            t = i + 1;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numCs; i++) {
+        uaswCarHeadlightsOnOff(carName[i], gVar348);
+        e = lightGetEnv(0);
+        cs = carCs[i];
+
+        cs->env = e;
     }
     soundSetReverbOff();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", InitUALevel6);
-#endif
 
-#ifdef NON_MATCHING
 void InitUALevel7(void)
 {
     s16 i;
-    s16 t;
-    s32 n;
     LightEnv* e;
     Cs* cs;
 
@@ -1089,49 +914,31 @@ void InitUALevel7(void)
     InitTriggerPoint(&helicoptor);
     helicoptor.unk01 = 0;
     InitAICarsInBattle();
-    i = 0;
-    if (numPlayers > 0) {
-        do {
-            CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
-            if (rtIsSplitScreenOn()) {
-                playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
-                playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
-                playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
-                playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
-                playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
-                playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
-            } else {
-                SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
-                if (playerInfo[i].unkF4 == VR_MODE_HELICOPTER) {
-                    InitHelicoptorPosition();
-                }
+    for (i = 0; i < numPlayers; i++) {
+        CarInit(&playerInfo[i], playerInfo[i].uaIndex, gInitPlayerWeapons[i]);
+        if (rtIsSplitScreenOn()) {
+            playerInfo[i].vrPos[1].vx = playerInfo[i].vrPos[5].vx;
+            playerInfo[i].vrPos[1].vy = playerInfo[i].vrPos[5].vy;
+            playerInfo[i].vrPos[1].vz = playerInfo[i].vrPos[5].vz;
+            playerInfo[i].vrRot[1].vx = playerInfo[i].vrRot[5].vx;
+            playerInfo[i].vrRot[1].vy = playerInfo[i].vrRot[5].vy;
+            playerInfo[i].vrRot[1].vz = playerInfo[i].vrRot[5].vz;
+        } else {
+            SetCarVRMode(&playerInfo[i], playerInfo[i].unkF8);
+            if (playerInfo[i].unkF4 == VR_MODE_HELICOPTER) {
+                InitHelicoptorPosition();
             }
-            t = i + 1;
-            do {
-            } while (0);
-            n = numPlayers;
-            i = t;
-        } while (t < n);
+        }
     }
-    i = 0;
-    if (numCs > 0) {
-        do {
-            uaswCarHeadlightsOnOff(carName[i], gVar348);
-            e = lightGetEnv(0);
-            cs = carCs[i];
-            do {
-            } while (0);
-            n = numCs;
-            cs->env = e;
-            t = i + 1;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numCs; i++) {
+        uaswCarHeadlightsOnOff(carName[i], gVar348);
+        e = lightGetEnv(0);
+        cs = carCs[i];
+
+        cs->env = e;
     }
     soundSetReverbOff();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", InitUALevel7);
-#endif
 
 void uaLeaveLevel(s32 level)
 {
@@ -1235,7 +1042,6 @@ void InitPlayerCar(s16 slot, s32 car, u8 flag)
     }
 }
 
-#ifdef NON_MATCHING
 void SetCarCsInfo(s16 slot, s16 idx, s32 car, u8 found)
 {
     VECTOR pos;
@@ -1251,8 +1057,8 @@ void SetCarCsInfo(s16 slot, s16 idx, s32 car, u8 found)
         CarInit(&playerInfo[slot], carName[idx], gInitPlayerWeapons[slot]);
         SetCarVRMode(&playerInfo[slot], VR_MODE_UNK_2);
     } else {
-        rot.vx = playerInfo[slot].motion.rot.vx;
         mode = playerInfo[slot].unkF4;
+        rot.vx = playerInfo[slot].motion.rot.vx;
         rot.vy = playerInfo[slot].motion.rot.vy;
         rot.vz = playerInfo[slot].motion.rot.vz;
         pos.vx = playerInfo[slot].motion.pos.vx;
@@ -1276,11 +1082,7 @@ void SetCarCsInfo(s16 slot, s16 idx, s32 car, u8 found)
         viewSetParent(camera[1], 1);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", SetCarCsInfo);
-#endif
 
-#ifdef NON_MATCHING
 void UASetAICar(s16 slot, s32 car)
 {
     s16 i;
@@ -1299,14 +1101,10 @@ void UASetAICar(s16 slot, s32 car)
     }
     if (found) {
         type = carTypes[idx];
-        SetAICarCsInfo(slot, idx, car, found);
+        SetAICarCsInfo(slot, idx, car);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", UASetAICar);
-#endif
-
-void SetAICarCsInfo(s16 slot, s16 idx, s32 car, u8 found)
+void SetAICarCsInfo(s16 slot, s16 idx, s32 car)
 {
     aiCarCs[slot] = carCs[idx];
     aiIndexToCarIndex[slot] = idx;
@@ -1324,14 +1122,11 @@ void SetAICarCsInfo(s16 slot, s16 idx, s32 car, u8 found)
     }
 }
 
-#ifdef NON_MATCHING
 void PlayGame(void)
 {
     s32 d[4];
     VECTOR sky;
     s16 i;
-    s16 t;
-    s32 n;
     s16 best;
     s16 bestVal;
 
@@ -1378,31 +1173,23 @@ void PlayGame(void)
                 if (aiCarInfo[i].stats.unk40 > 0) {
                     if (best < 0
                         || (aiCarInfo[i].unk01 != 0
-                            && bestVal < aiCarInfo[i].route[aiCarInfo[i].unk02].prio)) {
+                            && bestVal < aiCarInfo[i].profile.route[aiCarInfo[i].unk02].prio)) {
                         best = i;
-                        bestVal = aiCarInfo[i].route[aiCarInfo[i].unk02].prio;
+                        bestVal = aiCarInfo[i].profile.route[aiCarInfo[i].unk02].prio;
                     }
                 }
             }
             aiCarInfo[best].chosen = 1;
             aiCarInfo[best].unk01 = 0;
-            aiCarInfo[best].routeVal = aiCarInfo[best].route[aiCarInfo[best].unk02].val;
+            aiCarInfo[best].routeVal = aiCarInfo[best].profile.route[aiCarInfo[best].unk02].val;
             gVar370 = 0;
         }
     } else {
         gVar370 = 0;
-        i = 0;
-        if (numTargets > 0) {
-            do {
-                if (aiCarInfo[i].chosen) {
-                    aiCarInfo[i].chosen = 0;
-                }
-                t = i + 1;
-                do {
-                } while (0);
-                n = numTargets;
-                i = t;
-            } while (t < n);
+        for (i = 0; numTargets > i; i++) {
+            if (aiCarInfo[i].chosen) {
+                aiCarInfo[i].chosen = 0;
+            }
         }
     }
     for (i = 0; numTargets > i; i++) {
@@ -1450,9 +1237,6 @@ void PlayGame(void)
     UpdateNumPotHoles();
     UAStats();
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", PlayGame);
-#endif
 
 u8 CheckPlayerHealthStand(s32 player)
 {
@@ -1575,23 +1359,28 @@ void UpdateAICarDamageModel(s16 ai)
     }
 }
 
-#ifdef NON_MATCHING
 void StartDeathSequence(Car* car, u8 isPlayer)
 {
     u8* flags;
     CarMotion* motion;
     CarStats* stats;
     VECTOR3 v;
+    s32 uaIndex;
+    s16 carIndex;
 
     if (isPlayer) {
         PLAYER_CAR(car)->flags[21] = 1;
+        uaIndex = PLAYER_CAR(car)->uaIndex;
+        carIndex = playerIndexToCarIndex[PLAYER_CAR(car)->playerIdx];
         motion = &PLAYER_CAR(car)->motion;
         stats = &PLAYER_CAR(car)->stats;
+        flags = PLAYER_CAR(car)->flags;
         if (beatThisLevel) {
             return;
         }
-        flags = PLAYER_CAR(car)->flags;
     } else {
+        uaIndex = AI_CAR(car)->uaIndex;
+        carIndex = aiIndexToCarIndex[AI_CAR(car)->playerIdx];
         motion = &AI_CAR(car)->motion;
         stats = &AI_CAR(car)->stats;
         flags = AI_CAR(car)->flags;
@@ -1603,6 +1392,7 @@ void StartDeathSequence(Car* car, u8 isPlayer)
     }
     v.vx = motion->pos.vx;
     v.vy = motion->pos.vy;
+    v.vz = motion->pos.vz;
     v.vz = 0;
     do_smoke(&v);
     InitBombDamage(car, isPlayer, 1, 0);
@@ -1616,9 +1406,6 @@ void StartDeathSequence(Car* car, u8 isPlayer)
     do_big_explosion(&motion->pos);
     flags[26] = 1;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", StartDeathSequence);
-#endif
 
 u8 AnyAICarsAlive(void)
 {
@@ -1633,12 +1420,10 @@ u8 AnyAICarsAlive(void)
     return 0;
 }
 
-#ifdef NON_MATCHING
 void UpdateCamera(s16 idx)
 {
     SVECTOR rot;
     AICar* h;
-    Cs** tbl;
 
     if (gVar368) {
         viewSetDeltaTrans(&zeroTrans, idx);
@@ -1669,12 +1454,7 @@ void UpdateCamera(s16 idx)
     } else {
         rot.vx = 0;
         rot.vy = 0;
-        if (gVar350) {
-            tbl = &aiCarCs[aiCamFollow];
-        } else {
-            tbl = &playerCs[idx];
-        }
-        rot.vz = (*tbl)->rot.vz;
+        rot.vz = (gVar350 ? aiCarCs[aiCamFollow] : playerCs[idx])->rot.vz;
     }
     if (gVar350) {
         UASetCameraPosition(0, &aiCarInfo[aiCamFollow].motion.pos, &rot);
@@ -1682,71 +1462,40 @@ void UpdateCamera(s16 idx)
     }
     UASetCameraPosition(idx, &playerInfo[idx].motion.pos, &rot);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", UpdateCamera);
-#endif
 
 void UAStats(void)
 {
 }
 
-#ifdef NON_MATCHING
 void UAPlayerUpdate(Cs* cs, PlayerCar* car)
 {
     CarUpdateControlPad(car);
     CheckVRMode(car);
     CarUpdate(car);
-    cs->rot.vx = car->motion.rot.vx;
-    cs->rot.vy = car->motion.rot.vy;
-    cs->rot.vz = car->motion.rot.vz;
-    cs->pos.vx = car->motion.pos.vx;
-    cs->pos.vy = car->motion.pos.vy;
-    cs->pos.vz = car->motion.pos.vz;
+    copyVector(&cs->rot, &car->motion.rot);
+    copyVector(&cs->pos, &car->motion.pos);
     wdCopy((s32*)&cs->mat, (s32*)&car->motion.mat2, 8);
-    if (car->collision.unk16 >= 3) {
-        car->motion.lastRot.vx = car->motion.rot.vx;
-        car->motion.lastRot.vy = car->motion.rot.vy;
-        car->motion.lastRot.vz = car->motion.rot.vz;
-        car->motion.lastPos.vx = car->motion.pos.vx;
-        car->motion.lastPos.vy = car->motion.pos.vy;
-        car->motion.lastPos.vz = car->motion.pos.vz;
-        car->motion.unkA8 = car->motion.rot2.vx;
-        car->motion.unkAC = car->motion.rot2.vy;
-        car->motion.unkB0 = car->motion.rot2.vz;
+    if ((s16)car->collision.unk16 >= 3) {
+        copyVector(&car->motion.lastRot, &car->motion.rot);
+        copyVector(&car->motion.lastPos, &car->motion.pos);
+        copyVector(&car->motion.unkA8, &car->motion.rot2);
         wdCopy((s32*)&car->motion.lastMat, (s32*)&car->motion.mat2, 8);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", UAPlayerUpdate);
-#endif
 
-#ifdef NON_MATCHING
 void UAAIUpdate(Cs* cs, AICar* car)
 {
     AICarUpdate(car);
-    cs->rot.vx = car->motion.rot.vx;
-    cs->rot.vy = car->motion.rot.vy;
-    cs->rot.vz = car->motion.rot.vz;
-    cs->pos.vx = car->motion.pos.vx;
-    cs->pos.vy = car->motion.pos.vy;
-    cs->pos.vz = car->motion.pos.vz;
+    copyVector(&cs->rot, &car->motion.rot);
+    copyVector(&cs->pos, &car->motion.pos);
     wdCopy((s32*)&cs->mat, (s32*)&car->motion.mat2, 8);
-    if (car->collision.unk16 >= 3) {
-        car->motion.lastRot.vx = car->motion.rot.vx;
-        car->motion.lastRot.vy = car->motion.rot.vy;
-        car->motion.lastRot.vz = car->motion.rot.vz;
-        car->motion.lastPos.vx = car->motion.pos.vx;
-        car->motion.lastPos.vy = car->motion.pos.vy;
-        car->motion.lastPos.vz = car->motion.pos.vz;
-        car->motion.unkA8 = car->motion.rot2.vx;
-        car->motion.unkAC = car->motion.rot2.vy;
-        car->motion.unkB0 = car->motion.rot2.vz;
+    if ((s16)car->collision.unk16 >= 3) {
+        copyVector(&car->motion.lastRot, &car->motion.rot);
+        copyVector(&car->motion.lastPos, &car->motion.pos);
+        copyVector(&car->motion.unkA8, &car->motion.rot2);
         wdCopy((s32*)&car->motion.lastMat, (s32*)&car->motion.mat2, 8);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", UAAIUpdate);
-#endif
 
 void UARemoveVehicleFromDrawList(s32 name)
 {
@@ -1760,7 +1509,6 @@ void UARemoveVehicleFromDrawList(s32 name)
     }
 }
 
-#ifdef NON_MATCHING
 void CheckVRMode(PlayerCar* car)
 {
     u16 id;
@@ -1882,9 +1630,6 @@ void CheckVRMode(PlayerCar* car)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", CheckVRMode);
-#endif
 
 void InitHelicoptorPosition(void)
 {
@@ -1908,7 +1653,6 @@ void InitHelicoptorPosition(void)
     helicoptor.motion.pos.vz = z;
 }
 
-#ifdef NON_MATCHING
 s16 GetClosestPlayer(VECTOR3* pos, s16 skip)
 {
     s16 best;
@@ -1917,26 +1661,14 @@ s16 GetClosestPlayer(VECTOR3* pos, s16 skip)
     s32 dist;
     s32 dx;
     s32 dy;
-    s32 px;
-    s32 py;
-    s32 cx;
-    s32 cy;
 
     best = 0;
     bestDist = 0x7FFF;
     for (i = 0; i < numPlayers; i++) {
-        px = pos->vx;
-        cx = playerInfo[i].motion.pos.vx;
-        py = pos->vy;
-        cy = playerInfo[i].motion.pos.vy;
-        dx = px - cx;
-        if (dx < 0) {
-            dx = -dx;
-        }
-        dy = py - cy;
-        if (dy < 0) {
-            dy = -dy;
-        }
+        dx = pos->vx - playerInfo[i].motion.pos.vx;
+        dx = ABS(dx);
+        dy = pos->vy - playerInfo[i].motion.pos.vy;
+        dy = ABS(dy);
         dist = dx + dy;
         if (dist < bestDist) {
             if (i != skip) {
@@ -1947,11 +1679,7 @@ s16 GetClosestPlayer(VECTOR3* pos, s16 skip)
     }
     return best;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", GetClosestPlayer);
-#endif
 
-#ifdef NON_MATCHING
 s16 GetClosestAICar(VECTOR3* pos)
 {
     s16 best;
@@ -1960,27 +1688,15 @@ s16 GetClosestAICar(VECTOR3* pos)
     s32 dist;
     s32 dx;
     s32 dy;
-    s32 px;
-    s32 py;
-    s32 cx;
-    s32 cy;
 
     best = 0;
     bestDist = 0x7FFF;
     for (i = 0; i < numTargets; i++) {
         if (aiCarInfo[i].stats.unk40 > 0) {
-            px = pos->vx;
-            cx = aiCarInfo[i].motion.pos.vx;
-            py = pos->vy;
-            cy = aiCarInfo[i].motion.pos.vy;
-            dx = px - cx;
-            if (dx < 0) {
-                dx = -dx;
-            }
-            dy = py - cy;
-            if (dy < 0) {
-                dy = -dy;
-            }
+            dx = pos->vx - aiCarInfo[i].motion.pos.vx;
+            dx = ABS(dx);
+            dy = pos->vy - aiCarInfo[i].motion.pos.vy;
+            dy = ABS(dy);
             dist = dx + dy;
             if (dist < bestDist) {
                 best = i;
@@ -1990,9 +1706,6 @@ s16 GetClosestAICar(VECTOR3* pos)
     }
     return best;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", GetClosestAICar);
-#endif
 
 void GetPlayerPosition(s16 player, VECTOR3* out)
 {
@@ -2113,23 +1826,17 @@ u8 uaIsCarCS(Cs* cs, u8* isPlayer, s16* index)
     return found;
 }
 
-#ifdef NON_MATCHING
 s16 uaGetCarMatID(s16 idx, u8 isPlayer)
 {
-    u16* tbl;
     s16 k;
 
     if (isPlayer) {
-        tbl = &playerIndexToCarIndex[idx];
+        k = playerIndexToCarIndex[idx];
     } else {
-        tbl = (u16*)&aiIndexToCarIndex[idx];
+        k = aiIndexToCarIndex[idx];
     }
-    k = *tbl;
     return carCs[k]->unkC0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", uaGetCarMatID);
-#endif
 
 s32 uaIsCarMatID(s16 matId, s8* isPlayer, u16* index)
 {
@@ -2251,8 +1958,6 @@ void uaTweekDifficultyFnc(void)
 {
     s16 i;
     s32 strength;
-    s16 t;
-    s32 n;
 
     switch (difficulty) {
     default:
@@ -2268,16 +1973,8 @@ void uaTweekDifficultyFnc(void)
         strength = 120;
         break;
     }
-    i = 0;
-    if (numTargets > 0) {
-        do {
-            CarInitStrength(&aiCarInfo[i].stats, strength);
-            t = i + 1;
-            do {
-            } while (0);
-            n = numTargets;
-            i = t;
-        } while (t < n);
+    for (i = 0; i < numTargets; i++) {
+        CarInitStrength(&aiCarInfo[i].stats, strength);
     }
 }
 
@@ -2311,225 +2008,87 @@ s32 PadGetConfig(s16 player)
     return padConfig[player];
 }
 
-#ifdef NON_MATCHING
 void uaPadInit(PlayerCar* car, s32 mode)
 {
-    do {
-        car->skid[40] = 12;
-    } while (0);
+    car->skid[40] = 12;
     switch (mode) {
     case PAD_CONFIG_CTL_FREAK:
-        do {
-            car->skid[22] = 0;
-        } while (0);
-        do {
-            car->skid[24] = 5;
-        } while (0);
-        do {
-            car->skid[26] = 6;
-        } while (0);
-        do {
-            car->skid[28] = 8;
-        } while (0);
-        do {
-            car->skid[27] = 7;
-        } while (0);
-        do {
-            car->skid[38] = 2;
-        } while (0);
-        do {
-            car->skid[39] = 1;
-        } while (0);
-        do {
-            car->skid[29] = 12;
-        } while (0);
-        do {
-            car->skid[34] = 13;
-        } while (0);
-        do {
-            car->skid[35] = 14;
-        } while (0);
-        do {
-            car->skid[25] = 4;
-        } while (0);
-        do {
-            car->skid[33] = 11;
-        } while (0);
-        do {
-            car->skid[36] = 9;
-        } while (0);
-        do {
-            car->skid[37] = 3;
-        } while (0);
-        do {
-            car->skid[31] = 10;
-        } while (0);
-        do {
-            car->skid[32] = 10;
-        } while (0);
+        car->skid[22] = 0;
+        car->skid[24] = 5;
+        car->skid[26] = 6;
+        car->skid[28] = 8;
+        car->skid[27] = 7;
+        car->skid[38] = 2;
+        car->skid[39] = 1;
+        car->skid[29] = 12;
+        car->skid[34] = 13;
+        car->skid[35] = 14;
+        car->skid[25] = 4;
+        car->skid[33] = 11;
+        car->skid[36] = 9;
+        car->skid[37] = 3;
+        car->skid[31] = 10;
+        car->skid[32] = 10;
         break;
     case PAD_CONFIG_STANDARD:
     default:
-        do {
-            car->skid[22] = 1;
-        } while (0);
-        do {
-            car->skid[24] = 5;
-        } while (0);
-        do {
-            car->skid[26] = 6;
-        } while (0);
-        do {
-            car->skid[28] = 8;
-        } while (0);
-        do {
-            car->skid[27] = 7;
-        } while (0);
-        do {
-            car->skid[38] = 2;
-        } while (0);
-        do {
-            car->skid[39] = 1;
-        } while (0);
-        do {
-            car->skid[29] = 13;
-        } while (0);
-        do {
-            car->skid[25] = 14;
-        } while (0);
-        do {
-            car->skid[30] = 0;
-        } while (0);
-        do {
-            car->skid[34] = 10;
-        } while (0);
-        do {
-            car->skid[35] = 4;
-        } while (0);
-        do {
-            car->skid[36] = 3;
-        } while (0);
-        do {
-            car->skid[37] = 9;
-        } while (0);
-        do {
-            car->skid[33] = 11;
-        } while (0);
-        do {
-            car->skid[31] = 12;
-        } while (0);
-        do {
-            car->skid[32] = 12;
-        } while (0);
+        car->skid[22] = 1;
+        car->skid[24] = 5;
+        car->skid[26] = 6;
+        car->skid[28] = 8;
+        car->skid[27] = 7;
+        car->skid[38] = 2;
+        car->skid[39] = 1;
+        car->skid[29] = 13;
+        car->skid[25] = 14;
+        car->skid[30] = 0;
+        car->skid[34] = 10;
+        car->skid[35] = 4;
+        car->skid[36] = 3;
+        car->skid[37] = 9;
+        car->skid[33] = 11;
+        car->skid[31] = 12;
+        car->skid[32] = 12;
         break;
     case PAD_CONFIG_DEADLY_FORCE:
-        do {
-            car->skid[22] = 2;
-        } while (0);
-        do {
-            car->skid[24] = 5;
-        } while (0);
-        do {
-            car->skid[26] = 6;
-        } while (0);
-        do {
-            car->skid[28] = 8;
-        } while (0);
-        do {
-            car->skid[27] = 7;
-        } while (0);
-        do {
-            car->skid[38] = 2;
-        } while (0);
-        do {
-            car->skid[39] = 1;
-        } while (0);
-        do {
-            car->skid[29] = 12;
-        } while (0);
-        do {
-            car->skid[34] = 14;
-        } while (0);
-        do {
-            car->skid[35] = 13;
-        } while (0);
-        do {
-            car->skid[25] = 4;
-        } while (0);
-        do {
-            car->skid[33] = 11;
-        } while (0);
-        do {
-            car->skid[36] = 9;
-        } while (0);
-        do {
-            car->skid[37] = 3;
-        } while (0);
-        do {
-            car->skid[31] = 10;
-        } while (0);
-        do {
-            car->skid[32] = 10;
-        } while (0);
+        car->skid[22] = 2;
+        car->skid[24] = 5;
+        car->skid[26] = 6;
+        car->skid[28] = 8;
+        car->skid[27] = 7;
+        car->skid[38] = 2;
+        car->skid[39] = 1;
+        car->skid[29] = 12;
+        car->skid[34] = 14;
+        car->skid[35] = 13;
+        car->skid[25] = 4;
+        car->skid[33] = 11;
+        car->skid[36] = 9;
+        car->skid[37] = 3;
+        car->skid[31] = 10;
+        car->skid[32] = 10;
         break;
     case PAD_CONFIG_RUN_N_GUN:
-        do {
-            car->skid[22] = 3;
-        } while (0);
-        do {
-            car->skid[24] = 5;
-        } while (0);
-        do {
-            car->skid[26] = 6;
-        } while (0);
-        do {
-            car->skid[28] = 8;
-        } while (0);
-        do {
-            car->skid[27] = 7;
-        } while (0);
-        do {
-            car->skid[38] = 2;
-        } while (0);
-        do {
-            car->skid[39] = 1;
-        } while (0);
-        do {
-            car->skid[29] = 10;
-        } while (0);
-        do {
-            car->skid[25] = 9;
-        } while (0);
-        do {
-            car->skid[30] = 0;
-        } while (0);
-        do {
-            car->skid[34] = 13;
-        } while (0);
-        do {
-            car->skid[35] = 12;
-        } while (0);
-        do {
-            car->skid[36] = 11;
-        } while (0);
-        do {
-            car->skid[37] = 14;
-        } while (0);
-        do {
-            car->skid[33] = 3;
-        } while (0);
-        do {
-            car->skid[31] = 4;
-        } while (0);
-        do {
-            car->skid[32] = 4;
-        } while (0);
+        car->skid[22] = 3;
+        car->skid[24] = 5;
+        car->skid[26] = 6;
+        car->skid[28] = 8;
+        car->skid[27] = 7;
+        car->skid[38] = 2;
+        car->skid[39] = 1;
+        car->skid[29] = 10;
+        car->skid[25] = 9;
+        car->skid[30] = 0;
+        car->skid[34] = 13;
+        car->skid[35] = 12;
+        car->skid[36] = 11;
+        car->skid[37] = 14;
+        car->skid[33] = 3;
+        car->skid[31] = 4;
+        car->skid[32] = 4;
         break;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", uaPadInit);
-#endif
 
 s16 GetPlayerCarToCarIndex(s16 player)
 {
@@ -2692,11 +2251,10 @@ void UASetSoundFlags(s16 idx, Car* car, u8 isPlayer)
     }
 }
 
-#ifdef NON_MATCHING
 s16 GetNumAICarsLiving(void)
 {
     s32 i;
-    s16 n;
+    s32 n;
     s32 pad[1];
 
     n = 0;
@@ -2707,9 +2265,6 @@ s16 GetNumAICarsLiving(void)
     }
     return n;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", GetNumAICarsLiving);
-#endif
 
 s16 GetCarNumFromCarName(s32 name)
 {
@@ -2728,7 +2283,6 @@ s32 GetCarNameFromCarNum(s16 num)
     return CarNumToCarName[num];
 }
 
-#ifdef NON_MATCHING
 void uaSelectOpponents(s32 car, s16 level, s16* outCount, s32* outCars)
 {
     s32 carNum;
@@ -2736,12 +2290,10 @@ void uaSelectOpponents(s32 car, s16 level, s16* outCount, s32* outCars)
     s32 n;
     s16 bits;
     s16 me;
-    s32 r;
-    s32* p;
 
     bits = 0;
     n = 0;
-    if ((u16)level < LEVEL_MAX) {
+    if (level >= 0 && level < LEVEL_MAX) {
         for (carNum = 0; carNum < 12; carNum++) {
             if (car == CarNumToCarName[carNum]) {
                 break;
@@ -2761,13 +2313,13 @@ void uaSelectOpponents(s32 car, s16 level, s16* outCount, s32* outCars)
                     gVar3A8 = 0;
                 }
                 do {
-                    r = rand() % 12;
-                } while (((gVar3A4 >> r) & 1) != 0 || r == me);
-                gSelectedAICars[gAICars] = CarNumToCarName[r];
+                    carNum = rand() % 12;
+                } while (((gVar3A4 >> carNum) & 1) != 0 || carNum == me);
+                gSelectedAICars[gAICars] = CarNumToCarName[carNum];
                 gAICars++;
-                gVar3A4 |= 1 << r;
+                gVar3A4 |= 1 << carNum;
                 gVar3A8++;
-                outCars[n] = CarNumToCarName[r];
+                outCars[n] = CarNumToCarName[carNum];
                 n++;
                 remaining--;
             }
@@ -2777,25 +2329,20 @@ void uaSelectOpponents(s32 car, s16 level, s16* outCount, s32* outCars)
             }
             gAICars = 0;
             if (bits != 0) {
-                p = CarNumToCarName;
-                while (bits != 0) {
+                for (carNum = 0; bits != 0; carNum++) {
                     if (bits & 1) {
-                        gSelectedAICars[gAICars] = *p;
+                        gSelectedAICars[gAICars] = CarNumToCarName[carNum];
                         gAICars++;
-                        outCars[n] = *p;
+                        outCars[n] = CarNumToCarName[carNum];
                         n++;
                     }
                     bits >>= 1;
-                    p++;
                 }
             }
         }
         *outCount = n;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", uaSelectOpponents);
-#endif
 
 char* uaGetCarNameString(s32 name)
 {
@@ -2812,10 +2359,8 @@ u8 uaPlayerCheating(void)
     return gStandMode;
 }
 
-#ifdef NON_MATCHING
 void uaInitBossCar(void)
 {
-    s32 z;
 
     numTargets = 4;
     UASetAICar(3, UA_BOSS_CAR);
@@ -2823,23 +2368,15 @@ void uaInitBossCar(void)
     if (playerInfo[0].unkC0 < 6) {
         aiCarInfo[3].stats.triggerPt = 28;
         InitTriggerPoint(&aiCarInfo[3]);
-        z = 8000;
+        aiCarInfo[3].motion.pos.vz = 8000;
     } else {
         aiCarInfo[3].stats.triggerPt = 4;
         InitTriggerPoint(&aiCarInfo[3]);
-        z = 7760;
+        aiCarInfo[3].motion.pos.vz = 7760;
     }
-    aiCarInfo[3].motion.pos.vz = z;
-    playerInfo[0].motion.vel.vx = 0;
-    playerInfo[0].motion.vel.vy = 0;
-    playerInfo[0].motion.vel.vz = 0;
-    playerInfo[0].motion.rotDelta.vx = 0;
-    playerInfo[0].motion.rotDelta.vy = 0;
-    playerInfo[0].motion.rotDelta.vz = 0;
+    setVector(&playerInfo[0].motion.vel, 0, 0, 0);
+    setVector(&playerInfo[0].motion.rotDelta, 0, 0, 0);
     if (playerInfo[0].motion.pos.vz < 6400) {
         CarInit(&playerInfo[0], playerInfo[0].uaIndex, 0);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UA", uaInitBossCar);
-#endif
