@@ -1,14 +1,13 @@
 #include "common.h"
 #include <LIBCD.H>
 #include <LIBETC.H>
+#include <LIBSND.H>
 #include <LIBSPU.H>
 
 #include "tm1/CS.H"
 
 #include "tm1/SOUND.H"
-
-// Found in the PSX scratchpad.
-#define gVoiceList ((Tone**)0x1F800000)
+#include "tm1/TIMER.H"
 
 extern SoundSystemAttributes systemAttributes;
 // SoundSystemAttributes systemAttributes = {
@@ -43,11 +42,11 @@ static s32 StartPos;
 static s32 EndPos;
 static s32 CurPos;
 static s32 RepTime;
-static s32 cdInterruptLoc;
+static CdlLOC cdInterruptLoc;
 
 extern s16 D_8016FEFC[];
 
-// extern CdlLOC toc[100];
+extern CdlLOC soundToc[100];
 extern VECTOR3 gSoundEyeSpaceLoc;
 extern VECTOR3 gSoundEyeToSoundLoc;
 extern u8 soundVoiceTable[24];
@@ -98,7 +97,6 @@ void soundResetSoundEngine()
     soundForceAllSoundsOffNow();
 }
 
-#ifdef NON_MATCHING
 void soundSetRangeAndXPositionFromWorldLoc(VECTOR3* loc)
 {
     Cs* cs;
@@ -115,10 +113,8 @@ void soundSetRangeAndXPositionFromWorldLoc(VECTOR3* loc)
     gSoundRange = gSoundRange + gSoundEyeSpaceLoc.vy * gSoundEyeSpaceLoc.vy;
     gSoundRange = gSoundRange + gSoundEyeSpaceLoc.vz * gSoundEyeSpaceLoc.vz;
     range = gSoundRange;
-    if (range < 0) {
-        range = 0;
-        gSoundRange = range;
-    }
+    range = range > 0 ? range : 0;
+    gSoundRange = range;
     if (range < 0x800000) {
         r = range;
     } else {
@@ -126,9 +122,6 @@ void soundSetRangeAndXPositionFromWorldLoc(VECTOR3* loc)
     }
     gSoundRange = r;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundSetRangeAndXPositionFromWorldLoc);
-#endif
 
 s32 getOpenVoice(void)
 {
@@ -159,7 +152,6 @@ void releaseUsedVoice(s32 voice)
     soundVoiceTable[voice] = 0;
 }
 
-#ifdef NON_MATCHING
 void silenceUnusedVoices(void)
 {
     s32 i;
@@ -170,9 +162,6 @@ void silenceUnusedVoices(void)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", silenceUnusedVoices);
-#endif
 
 void soundOff(Tone* t)
 {
@@ -199,18 +188,16 @@ void dopplerAdjustTonePitch(Tone* t, u8* noteOut, u8* fineOut)
     *fineOut = pitch - (*noteOut << 7);
 }
 
-#ifdef NON_MATCHING
 void soundOn(Tone* t)
 {
     s32 voice;
     u8 v;
-    s32 note;
 
     if (t->state == 0 || t->state == 2) {
         voice = getOpenVoice();
         if (voice != -1) {
-            spuVoiceAttr.voice = 1u << ((u32)voice & 31);
-            spuVoiceAttr.mask = 3;
+            spuVoiceAttr.voice = 1u << voice;
+            spuVoiceAttr.mask = SPU_VOICE_VOLL | SPU_VOICE_VOLR;
             spuVoiceAttr.volumex.left = 0;
             spuVoiceAttr.volumex.right = 0;
             SpuSetVoiceAttr(&spuVoiceAttr);
@@ -226,24 +213,20 @@ void soundOn(Tone* t)
             t->fine = v;
             t->voice = SsUtKeyOnV(voice, t->vabId, t->prog, t->tone, t->note, t->fine, 0, 0);
             SsUtFlush();
-            spuVoiceAttr.mask = 0x60;
-            spuVoiceAttr.voice = 1u << (t->voice & 31);
-            note = t->note << 8;
-            spuVoiceAttr.note = note;
+            spuVoiceAttr.voice = 1u << t->voice;
+            spuVoiceAttr.mask = SPU_VOICE_NOTE | SPU_VOICE_SAMPLE_NOTE;
+            spuVoiceAttr.note = t->note << 8;
+            spuVoiceAttr.note |= t->fine;
             spuVoiceAttr.sample_note = 0x3C00;
-            spuVoiceAttr.note = t->fine | note;
             SpuSetVoiceAttr(&spuVoiceAttr);
             if (t->noise == 1) {
-                SpuSetNoiseVoice(1, 1u << (t->voice & 31));
+                SpuSetNoiseVoice(1, 1u << t->voice);
             }
             t->state = 1;
             soundIncActiveVoiceCount();
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundOn);
-#endif
 
 void soundOffOn(Tone* t)
 {
@@ -253,26 +236,29 @@ void soundOffOn(Tone* t)
     soundOn(t);
 }
 
-#ifdef NON_MATCHING
 void soundPlaySound(Tone* t)
 {
     u8 note;
     u8 fine;
     SpuVoiceAttr* attr;
     u32 mode;
+    u32 voice;
     u8 v;
     u8 w;
     u8 x;
 
     mode = t->mode;
-    if (mode != 0) {
-        if (mode < 3) {
+    switch (mode) {
+    case 0:
+        if (t->state == 1)
+            soundOffOn(t);
+        else
             soundOn(t);
-        }
-    } else if (t->state == 1) {
-        soundOffOn(t);
-    } else {
+        break;
+    case 1:
+    case 2:
         soundOn(t);
+        break;
     }
     if (t->dirty != 0 && t->state == 1) {
         if (t->doppler != 0 && t->pitchDelta != 0) {
@@ -291,11 +277,12 @@ void soundPlaySound(Tone* t)
             w = 0x7F;
         }
         fine = w;
+        voice = t->voice;
         attr = &spuVoiceAttr;
-        spuVoiceAttr.mask = 0x60;
+        spuVoiceAttr.mask = SPU_VOICE_NOTE | SPU_VOICE_SAMPLE_NOTE;
         spuVoiceAttr.note = w | (v << 8);
         spuVoiceAttr.sample_note = 0x3C00;
-        spuVoiceAttr.voice = 1u << (t->voice & 31);
+        spuVoiceAttr.voice = 1u << voice;
         SpuSetVoiceAttr(attr);
         t->dirty = 0;
     }
@@ -321,9 +308,6 @@ void soundPlaySound(Tone* t)
     t->volR = x;
     SsUtSetVVol(t->voice, t->volL, t->volR);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundPlaySound);
-#endif
 
 void soundPlayAllRequests(s32 count, Tone** list)
 {
@@ -483,12 +467,11 @@ void soundCloseLevelSwapSounds(s32 which)
 {
 }
 
-#ifdef NON_MATCHING
 void soundInit(void)
 {
     s16* p;
     s16 val;
-    u32 i;
+    s32 i;
 
     SsInit();
     soundIdInit();
@@ -501,16 +484,13 @@ void soundInit(void)
     soundInitRequestBuffers();
     i = 0;
     val = -1;
-    p = soundVabIds;
+    p = soundVabIds_104;
     do {
         *p = val;
         i++;
         p++;
     } while (i < 2);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundInit);
-#endif
 
 void soundShutdown()
 {
@@ -643,7 +623,7 @@ s32 soundGetSFXVolume()
     return systemAttributes.sfxVolume;
 }
 
-void soundSetMusicVolume(s32 vol)
+inline void soundSetMusicVolume(s32 vol)
 {
     s32 v;
 
@@ -734,36 +714,17 @@ void soundSetPreviousMusicVolume(s32 vol)
     gPreviousMusicVolume = vol;
 }
 
-// TODO: Requires BSS matching.
-#ifdef NON_MATCHING
 void soundStartPlayDA(s32 track)
 {
-    static CdlLOC toc[100];
     u8 changed;
     u32 st;
-    s32 mv;
-    s32 t;
-    s32 v;
+    s32 resumePos;
     s32 pos;
-    s32 pm;
-    s32 mv2;
-    s32 t2;
-    s32 v2;
 
     changed = 0;
     if (gDAState != 4) {
-        pm = systemAttributes.musicVolume;
-        mv2 = systemAttributes.masterVolume;
-        t2 = mv2 & (mv2 >> 15);
-        if (t2 < 0) {
-            v2 = 0;
-        } else {
-            v2 = t2;
-        }
-        gPreviousMusicVolume = pm;
-        t2 = v2;
-        systemAttributes.musicVolume = t2;
-        SsSetSerialVol(0, t2, t2);
+        gPreviousMusicVolume = systemAttributes.musicVolume;
+        soundSetMusicVolume(0);
     }
     if (gCurrentDATrack != track) {
         changed = 1;
@@ -771,96 +732,47 @@ void soundStartPlayDA(s32 track)
     st = gDAState;
     gCurrentDATrack = track;
     if (st < 2 || changed) {
-        CdGetToc(toc);
-        pos = CdPosToInt(&toc[track]) + 150;
-        soundCDRepeat(pos, CdPosToInt(&toc[track + 1]) - 150);
+        CdGetToc(soundToc);
+        pos = CdPosToInt(&soundToc[track]) + 150;
+        soundCDRepeat(pos, CdPosToInt(&soundToc[track + 1]) - 150);
         gDAState = 1;
-        CdIntToPos(CurPos, (CdlLOC*)&cdInterruptLoc);
+        CdIntToPos(CurPos, &cdInterruptLoc);
     } else if (st == 4) {
-        pos = CdPosToInt(&toc[track]) + 150;
-        CurPos = pos;
-        StartPos = pos;
-        EndPos = CdPosToInt(&toc[track + 1]);
+        resumePos = CdPosToInt(&soundToc[track]) + 150;
+        CurPos = resumePos;
+        StartPos = resumePos;
+        EndPos = CdPosToInt(&soundToc[track + 1]);
         soundResumePlayDA();
     }
-    t = gPreviousMusicVolume;
-    if (systemAttributes.masterVolume < t) {
-        t = systemAttributes.masterVolume;
-    }
-    if (t < 0) {
-        v = 0;
-    } else {
-        v = t;
-    }
-    t = v;
-    systemAttributes.musicVolume = t;
-    SsSetSerialVol(0, t, t);
+    soundSetMusicVolume(gPreviousMusicVolume);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundStartPlayDA);
-#endif
 
-#ifdef NON_MATCHING
 void soundInterruptPlayDA(void)
 {
-    s32 mv;
-    s32 t;
-    s32 v;
-    s32 pm;
 
     if (gDAState == 1) {
         CdReadyCallback(0);
-        pm = systemAttributes.musicVolume;
-        mv = systemAttributes.masterVolume;
-        t = mv & (mv >> 15);
-        if (t < 0) {
-            v = 0;
-        } else {
-            v = t;
-        }
-        gPreviousMusicVolume = pm;
-        t = v;
-        systemAttributes.musicVolume = t;
-        SsSetSerialVol(0, t, t);
-        CdControl(9, 0, 0);
-        CdIntToPos(CurPos, (CdlLOC*)&cdInterruptLoc);
+        gPreviousMusicVolume = systemAttributes.musicVolume;
+        soundSetMusicVolume(0);
+        CdControl(CdlPause, 0, 0);
+        CdIntToPos(CurPos, &cdInterruptLoc);
         gDAState = 4;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundInterruptPlayDA);
-#endif
 
-#ifdef NON_MATCHING
 void soundResumePlayDA(void)
 {
-    s8 mode;
-    s32 t;
-    s32 v;
+    u8 mode;
 
     if (gDAState == 4) {
-        mode = 5;
-        CdControl(0xE, (u8*)&mode, 0);
+        mode = CdlModeRept | CdlModeDA;
+        CdControl(CdlSetmode, &mode, 0);
         CdReadyCallback(cbready);
-        CdControl(3, (u8*)&cdInterruptLoc, 0);
-        t = gPreviousMusicVolume;
-        if (systemAttributes.masterVolume < t) {
-            t = systemAttributes.masterVolume;
-        }
-        if (t < 0) {
-            v = 0;
-        } else {
-            v = t;
-        }
-        t = v;
-        systemAttributes.musicVolume = t;
-        SsSetSerialVol(0, t, t);
+        CdControl(CdlPlay, (u8*)&cdInterruptLoc, 0);
+        soundSetMusicVolume(gPreviousMusicVolume);
         gDAState = 1;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundResumePlayDA);
-#endif
 
 void soundStopPlayDA(void)
 {
@@ -885,7 +797,6 @@ void soundStopPlayDA(void)
     }
 }
 
-#ifdef NON_MATCHING
 void soundCDRepeat(s32 start, s32 end)
 {
     u8 mode;
@@ -894,18 +805,14 @@ void soundCDRepeat(s32 start, s32 end)
     StartPos = start;
     CurPos = start;
     RepTime = 0;
-    mode = 5;
-    CdControlB(0xE, (u8*)&mode, 0);
+    mode = CdlModeRept | CdlModeDA;
+    CdControlB(CdlSetmode, &mode, 0);
     CdReadyCallback(cbready);
     cdplay(3);
     SsSetSerialAttr(0, 0, 1);
     SsSetSerialVol(0, systemAttributes.musicVolume, systemAttributes.musicVolume);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundCDRepeat);
-#endif
 
-#ifdef NON_MATCHING
 void soundXARepeat(s32 start, s32 end)
 {
     u8 mode;
@@ -914,16 +821,13 @@ void soundXARepeat(s32 start, s32 end)
     StartPos = start;
     CurPos = start;
     RepTime = 0;
-    mode = 0xC0;
-    CdControlB(0xE, (u8*)&mode, 0);
+    mode = CdlModeSpeed | CdlModeRT;
+    CdControlB(CdlSetmode, &mode, 0);
     VSyncCallback(cbvsync);
     cdplay(6);
     SsSetSerialAttr(0, 0, 1);
     SsSetSerialVol(0, systemAttributes.musicVolume, systemAttributes.musicVolume);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundXARepeat);
-#endif
 
 s32 cdGetPos()
 {
@@ -935,52 +839,26 @@ s32 cdGetRepTime()
     return RepTime;
 }
 
-#ifdef NON_MATCHING
 void cbready(s32 intr, u8* result)
 {
     CdlLOC loc;
-    s32 mv;
-    s32 t;
-    s32 v;
 
     if (intr == 1) {
         if (!(result[4] & 0x80)) {
             loc.minute = result[3];
-            loc.sector = 0;
             loc.second = result[4];
+            loc.sector = 0;
             CurPos = CdPosToInt(&loc);
         }
         if (CurPos > EndPos || CurPos < StartPos) {
-            mv = systemAttributes.masterVolume;
-            t = mv & (mv >> 15);
-            if (t < 0) {
-                v = 0;
-            } else {
-                v = t;
-            }
-            systemAttributes.musicVolume = v;
-            SsSetSerialVol(0, v, v);
+            soundSetMusicVolume(0);
             cdplay(3);
-            t = gPreviousMusicVolume;
-            if (systemAttributes.masterVolume < t) {
-                t = systemAttributes.masterVolume;
-            }
-            if (t < 0) {
-                v = 0;
-            } else {
-                v = t;
-            }
-            t = v;
-            systemAttributes.musicVolume = t;
-            SsSetSerialVol(0, t, t);
+            soundSetMusicVolume(gPreviousMusicVolume);
         }
     } else {
         cdplay(3);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", cbready);
-#endif
 
 void cbvsync(void)
 {
@@ -1019,7 +897,15 @@ void cdplay(s32 mode)
     RepTime = RepTime + 1;
 }
 
-#ifdef NON_MATCHING
+static inline Tone* soundOffAndGetNextTone(Tone* tone)
+{
+    Tone* next;
+
+    next = tone->nextToPlay;
+    soundOff(tone);
+    return next;
+}
+
 void soundProcessIds(void)
 {
     s32 i;
@@ -1031,18 +917,20 @@ void soundProcessIds(void)
     Tone* t;
     Tone* nxt;
     Tone** vp;
+    Tone** voices;
     s32 j;
     s32 k;
     s32 id;
     s32 pct;
+    s32 noteOffset;
     s32 pan;
     s32 scale;
     s32 avail;
     s32 dd;
     u32 d;
     u32 vol;
-    u32 volL;
-    u32 volR;
+    s16 volL;
+    s16 volR;
     s16 scaleL;
     s16 scaleR;
     u8 create;
@@ -1050,6 +938,7 @@ void soundProcessIds(void)
     u8 freed;
     u32 tmp;
 
+    voices = (Tone**)getScratchAddr(0);
     startIdx = 0;
     numFinishing = 0;
     soundProcessSpecialSounds();
@@ -1142,8 +1031,10 @@ void soundProcessIds(void)
                         SsUtGetVagAtr(t->vabId, t->prog, t->tone, &t->priority);
                         t->unk5C = 0x1E00;
                         t->note = 120 - t->note;
-                        t->unk64 = (t->unk0C[1] + (t->note - 60)) << 7;
-                        t->basePitch = (t->unk0C[0] + (t->note - 60)) << 7;
+                        noteOffset = t->note - 60;
+                        t->unk64 = (t->unk0C[1] + noteOffset) << 7;
+                        noteOffset = t->note - 60;
+                        t->basePitch = (t->unk0C[0] + noteOffset) << 7;
                         t->pitchRange = t->unk64 - t->basePitch;
                         addToneToSingleSound(t, ss);
                         addToneToTonesToPlayList(t);
@@ -1223,69 +1114,70 @@ void soundProcessIds(void)
                 }
                 scaleL = (ss->mvol * (s16)volL) / 99;
                 scaleR = (ss->mvol * (s16)volR) / 99;
-                t = ss->tones;
-                if (t != NULL) {
-                    do {
-                        t->volL = (t->unk08 * scaleL) / 99;
-                        t->volR = (t->unk08 * scaleR) / 99;
-                        if (useScale) {
-                            t->volL = (t->volL * scale) / 99;
-                            t->volR = (t->volR * scale) / 99;
-                        }
-                        t->unk78 = t->range;
-                        t->range = gRequestQueue[i].dist;
-                        if (t->doppler != 0) {
-                            if ((u32)soundGetMasterDopplerEffectiveRangeSquared() >= t->range) {
-                                t->pitchDelta = (s32)(t->unk78 - t->range)
-                                    / (GetFieldsLastFrame() * soundGetMasterDopplerDelta());
-                                if (t->pitchDelta > 2400) {
-                                    t->pitchDelta = 0;
-                                }
-                                if (t->pitchDelta != 0) {
-                                    dd = t->pitchDelta;
-                                    if (dd < 0) {
-                                        dd = -dd;
-                                    }
-                                    if (dd < 1200) {
-                                        t->dirty = 1;
-                                    }
-                                }
-                                t->pitchDelta = (t->pitchDelta > -1200) ? t->pitchDelta : -1200;
-                                t->pitchDelta = (t->pitchDelta <= 1200) ? t->pitchDelta : 1200;
-                            } else {
+                for (t = ss->tones; t != NULL; t = t->next) {
+                    t->volL = (scaleL * t->unk08) / 99;
+                    t->volR = (scaleR * t->unk08) / 99;
+                    if (useScale) {
+                        t->volL = (t->volL * scale) / 99;
+                        t->volR = (t->volR * scale) / 99;
+                    }
+                    t->unk78 = t->range;
+                    t->range = gRequestQueue[i].dist;
+                    if (t->doppler != 0) {
+                        if ((u32)soundGetMasterDopplerEffectiveRangeSquared() >= t->range) {
+                            dd = t->unk78 - t->range;
+                            dd = dd / (GetFieldsLastFrame() * soundGetMasterDopplerDelta());
+                            t->pitchDelta = dd;
+                            if (t->pitchDelta > 2400) {
                                 t->pitchDelta = 0;
                             }
+                            if (t->pitchDelta != 0) {
+                                pct = t->pitchDelta;
+                                if (pct < 0) {
+                                    pct = -pct;
+                                }
+                                if (pct < 1200) {
+                                    t->dirty = 1;
+                                }
+                            }
+                            t->pitchDelta = (t->pitchDelta > -1200) ? t->pitchDelta : -1200;
+                            t->pitchDelta = (t->pitchDelta <= 1200) ? t->pitchDelta : 1200;
+                        } else {
+                            t->pitchDelta = 0;
                         }
-                        t = t->next;
-                    } while (t != NULL);
+                    }
                 }
             }
         }
     }
-    t = tonesToPlayHead;
-    if (t != NULL) {
-        vp = &gVoiceList[numVoices];
+    if (tonesToPlayHead != NULL) {
+        t = tonesToPlayHead;
+        vp = (Tone**)(numVoices * 4 + (u32)voices);
         do {
             freed = 0;
             if (t->unk6E == 0) {
                 if (t->state == 1) {
                     if (SpuGetKeyStatus(1 << t->voice) == 0) {
                         soundOff(t);
-                        freed = 1;
                         deleteToneFromSingleSound(&gSingleSounds[t->soundIndex], t);
+                        freed = 1;
                         nxt = t->nextToPlay;
-                        goto killTone;
-                    }
-                    if (t->unk50 != 0) {
+                        deleteToneFromTonesToPlayList(t);
+                        freeToneInstance(t);
+                        t = nxt;
+                    } else if (t->unk50 != 0) {
                         t->unk4C = t->unk4C - 1;
                         if (t->unk4C <= 0) {
                             soundOff(t);
-                            freed = 1;
                             deleteToneFromSingleSound(&gSingleSounds[t->soundIndex], t);
+                            freed = 1;
                             nxt = t->nextToPlay;
-                            goto killTone;
+                            deleteToneFromTonesToPlayList(t);
+                            freeToneInstance(t);
+                            t = nxt;
+                        } else {
+                            t->unk6E = 1;
                         }
-                        t->unk6E = 1;
                     } else if (t->mode == 0 || t->mode == 1 || t->mode == 2) {
                         if (numFinishing + 1 < 29) {
                             gFinishingTonesList[numFinishing] = t;
@@ -1294,11 +1186,9 @@ void soundProcessIds(void)
                             soundIncTotalVoiceCount();
                             freed = 1;
                         } else {
-                            nxt = t->nextToPlay;
-                            soundOff(t);
-                            freed = 1;
+                            nxt = soundOffAndGetNextTone(t);
                             deleteToneFromSingleSound(&gSingleSounds[t->soundIndex], t);
-                        killTone:
+                            freed = 1;
                             deleteToneFromTonesToPlayList(t);
                             freeToneInstance(t);
                             t = nxt;
@@ -1319,18 +1209,17 @@ void soundProcessIds(void)
                 t = t->nextToPlay;
             }
         } while (t != NULL);
-        soundSortInstances(gVoiceList, 0, numVoices - 1);
+        soundSortInstances(voices, 0, numVoices - 1);
         if (numVoices >= 24) {
             for (k = 24; k < numVoices; k++) {
-                if (gVoiceList[k]->state == 1) {
-                    gVoiceList[k]->unk6E = 2;
-                    soundOff(gVoiceList[k]);
+                if (voices[k]->state == 1) {
+                    voices[k]->unk6E = 2;
+                    soundOff(voices[k]);
                 } else {
-                    soundOff(gVoiceList[k]);
-                    deleteToneFromSingleSound(
-                        &gSingleSounds[gVoiceList[k]->soundIndex], gVoiceList[k]);
-                    deleteToneFromTonesToPlayList(gVoiceList[k]);
-                    freeToneInstance(gVoiceList[k]);
+                    soundOff(voices[k]);
+                    deleteToneFromSingleSound(&gSingleSounds[voices[k]->soundIndex], voices[k]);
+                    deleteToneFromTonesToPlayList(voices[k]);
+                    freeToneInstance(voices[k]);
                 }
             }
             numVoices = 24;
@@ -1350,13 +1239,10 @@ void soundProcessIds(void)
                 freeToneInstance(gFinishingTonesList[k]);
             }
         }
-        soundPlayAllRequests(numVoices, gVoiceList);
+        soundPlayAllRequests(numVoices, voices);
     }
     soundIdRequestIdx = -1;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", soundProcessIds);
-#endif
 
 void soundForceAllSoundsOffNow(void)
 {
@@ -1558,21 +1444,20 @@ void soundIdInit(void)
     memset(gTonePool, 0x120C, 0x30);
 }
 
-#ifdef NON_MATCHING
 Tone* mallocToneInstance(void)
 {
     Tone* result;
     s32 i;
     s32 j;
-    s32 n;
 
     result = NULL;
     if (gToneNumFree != 0) {
-        i = gToneMinFree;
-        n = gToneMaxUsed;
-        while (i <= n) {
+        for (i = gToneMinFree; i <= gToneMaxUsed; i++) {
             if (gTonePool[i].inUse == 0) {
                 result = &gTonePool[i];
+                /* Keep PsyQ from delaying the pointer assignment past the counter updates. */
+                do {
+                } while (0);
                 gToneNumFree--;
                 j = i + 1;
                 if (gToneMinFree >= j) {
@@ -1592,15 +1477,10 @@ Tone* mallocToneInstance(void)
                 result->doppler = 0;
                 break;
             }
-            n = gToneMaxUsed;
-            i++;
         }
     }
     return result;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SOUND", mallocToneInstance);
-#endif
 
 void freeToneInstance(Tone* t)
 {
