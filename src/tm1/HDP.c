@@ -1,5 +1,6 @@
 #include "common.h"
 
+#include <LIBGPU.H>
 #include <LIBGTE.H>
 
 #include "tm1/CS.H"
@@ -13,8 +14,9 @@ HdpEnt* fastHdpStack = (HdpEnt*)0x1F800000;
 static HdpEnt* hdpStack;
 static s32 hdp_stackIdx;
 
+extern HdCsHit hdp_tmpResult;
+
 void hdpPush(DbNode* node, VECTOR3* pos, s32 id0, s32 id1);
-#ifdef NON_MATCHING
 void hdpPush(DbNode* node, VECTOR3* pos, s32 id0, s32 id1)
 {
     HdpEnt* base;
@@ -28,18 +30,15 @@ void hdpPush(DbNode* node, VECTOR3* pos, s32 id0, s32 id1)
         }
     } while (0);
     base[i].node = node;
-    base[i].pos.vx = pos->vx;
-    base[i].pos.vy = pos->vy;
-    base[i].pos.vz = pos->vz;
-    base[i].id0 = id0;
-    base[i].id1 = id1;
+    copyVector(&base[i].pos, pos);
+    do {
+        base[i].id0 = id0;
+        base[i].id1 = id1;
+    } while (0);
     if (hdp_stackIdx < 200) {
         hdp_stackIdx++;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HDP", hdpPush);
-#endif
 
 s32 hdpPop(HdpEnt** out)
 {
@@ -90,26 +89,16 @@ s32 hdpIsPtInSphere(VECTOR3* p, s32 rad, VECTOR3* c)
     return 1;
 }
 
-#ifdef NON_MATCHING
 void hdpTraverse(Cs* cs, VECTOR3* pt, HdCsHit* res)
 {
     HdpEnt* e;
     s16 id0;
     s16 id1;
-    DbNode* node;
-    s32* pos;
-    s32 t0;
-    s32 t1;
     u8 kind;
 
-    node = cs->epNode;
-    pos = pt;
-    t0 = 0;
-    t1 = 0;
     e = NULL;
     hdp_stackIdx = 0;
-push:
-    hdpPush(node, pos, t0, t1);
+    hdpPush(cs->epNode, pt, 0, 0);
     while (res->depth == 0 && hdpPop(&e) >= 0) {
         kind = e->node->h.op;
         switch (kind) {
@@ -162,12 +151,8 @@ push:
             }
             hdpSetNodeIds(&id0, &id1, e, n->h.kind, n->sub);
             cnt = n->nChild;
-            i = 0;
-            if (cnt != 0) {
-                do {
-                    hdpPush(n->child[i], &e->pos, id0, id1);
-                    i++;
-                } while (i < cnt);
+            for (i = 0; i < cnt; i++) {
+                hdpPush(n->child[i], &e->pos, id0, id1);
             }
             break;
         }
@@ -181,9 +166,7 @@ push:
             if (n->flags & DB_NODE_NO_COLLIDE) {
                 break;
             }
-            e->pos.vx = e->pos.vx - n->ofs.vx;
-            e->pos.vy = e->pos.vy - n->ofs.vy;
-            e->pos.vz = e->pos.vz - n->ofs.vz;
+            setVector(&e->pos, e->pos.vx - n->ofs.vx, e->pos.vy - n->ofs.vy, e->pos.vz - n->ofs.vz);
             hdpSetNodeIds(&id0, &id1, e, n->h.kind, n->sub);
             for (i = 0; i < n->nChild; i++) {
                 hdpPush(n->child[i], &e->pos, id0, id1);
@@ -192,16 +175,14 @@ push:
         }
         case DB_OP_ROT: {
             DbRot* n = &e->node->rot;
-            VECTOR v;
-            s32 dead[2];
+            VECTOR3 v;
             s32 i;
 
             if (n->flags & DB_NODE_NO_COLLIDE) {
                 break;
             }
-            e->pos.vx = e->pos.vx - n->mat.t[0];
-            e->pos.vy = e->pos.vy - n->mat.t[1];
-            e->pos.vz = e->pos.vz - n->mat.t[2];
+            setVector(
+                &e->pos, e->pos.vx - n->mat.t[0], e->pos.vy - n->mat.t[1], e->pos.vz - n->mat.t[2]);
             v.vx = e->pos.vx;
             v.vy = e->pos.vy;
             v.vz = e->pos.vz;
@@ -216,21 +197,15 @@ push:
             DbSwitch* n = &e->node->sw;
 
             hdpSetNodeIds(&id0, &id1, e, n->h.kind, n->sub);
-            t0 = id0;
-            t1 = id1;
-            node = n->child[n->sel];
-            pos = &e->pos;
-            goto push;
+            hdpPush(n->child[n->sel], &e->pos, id0, id1);
+            break;
         }
         case DB_OP_ANIM: {
             DbAnim* n = &e->node->anim;
 
             hdpSetNodeIds(&id0, &id1, e, n->h.kind, n->sub);
-            t0 = id0;
-            t1 = id1;
-            node = n->child[n->cur];
-            pos = &e->pos;
-            goto push;
+            hdpPush(n->child[n->cur], &e->pos, id0, id1);
+            break;
         }
         case DB_OP_CTRL: {
             DbCtrl* n = &e->node->ctrl;
@@ -245,9 +220,6 @@ push:
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HDP", hdpTraverse);
-#endif
 
 void hdpLod(DbLod* n, HdpEnt* e)
 {
@@ -323,24 +295,25 @@ s32 hdpPntVolume(DbVolume* n, VECTOR3* pos, HdCsHit* res, s32 mode)
     return res->hit == 1;
 }
 
-#ifdef NON_MATCHING
 void hdpCtrlNode(HdpEnt* e, s16 id0, s16 id1)
 {
     DbCtrl* n;
     s32 i;
     s32 ok;
+    HdBox* box;
 
     n = &e->node->ctrl;
     i = 0;
     ok = 1;
-    while (i < n->nBox) {
-        if (hdpInCtrlBox(n->box[i], &e->pos) != 0) {
+    while (ok != 0) {
+        if (i >= n->nBox) {
+            break;
+        }
+        box = n->box[i];
+        if (hdpInCtrlBox(box, &e->pos) != 0) {
             ok = 0;
         }
         i++;
-        if (ok == 0) {
-            break;
-        }
     }
     if (ok != 0) {
         if (n->childOut != 0) {
@@ -352,34 +325,20 @@ void hdpCtrlNode(HdpEnt* e, s16 id0, s16 id1)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HDP", hdpCtrlNode);
-#endif
 
-#ifdef NON_MATCHING
 s32 hdpInCtrlBox(HdBox* b, VECTOR3* pos)
 {
-    VECTOR p;
-    VECTOR d;
-    s32 r;
+    VECTOR3 p;
+    VECTOR3 d;
 
     mathMulVec(&b->mat, pos, &p);
-    r = 0;
-    d.vz = b->lo.vz + p.vz;
-    if (d.vz >= 0) {
-        d.vy = b->lo.vy + p.vy;
-        if (d.vy >= 0) {
-            d.vx = b->lo.vx + p.vx;
-            if (d.vx >= 0 && b->hi.vx - d.vx >= 0 && b->hi.vy - d.vy >= 0) {
-                r = b->hi.vz - d.vz >= 0;
-            }
-        }
+    if ((d.vz = b->lo.vz + p.vz) >= 0 && (d.vy = b->lo.vy + p.vy) >= 0
+        && (d.vx = b->lo.vx + p.vx) >= 0 && b->hi.vx - d.vx >= 0 && b->hi.vy - d.vy >= 0
+        && b->hi.vz - d.vz >= 0) {
+        return 1;
     }
-    return r;
+    return 0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HDP", hdpInCtrlBox);
-#endif
 
 void hdpSetHitTag(HdCsHit* r, s16 id0, s16 id1, HdpEnt* n)
 {
@@ -392,21 +351,22 @@ void hdpSetHitTag(HdCsHit* r, s16 id0, s16 id1, HdpEnt* n)
     }
 }
 
-#ifdef NON_MATCHING
 HdCsHit* HdPntTest(s32 skip0, s32 skip1, VECTOR3* pt, s32* hitId)
 {
-    static HdCsHit tmpResult;
     Cs* cs;
+    /* Preserve the unused vector-sized slots in the original stack frame. */
+    VECTOR3 scratch0;
+    VECTOR3 scratch1;
 
-    tmpResult.hit = 0;
-    tmpResult.histIdx = -1;
-    tmpResult.tag0 = -1;
-    tmpResult.depth = 0;
+    hdp_tmpResult.hit = 0;
+    hdp_tmpResult.histIdx = -1;
+    hdp_tmpResult.tag0 = -1;
+    hdp_tmpResult.depth = 0;
     *hitId = 0;
     cs = csGetWorldCs();
     if (cs->epNode != 0) {
-        hdpTraverse(cs, pt, &tmpResult);
-        if (tmpResult.hit == 1) {
+        hdpTraverse(cs, pt, &hdp_tmpResult);
+        if (hdp_tmpResult.hit == 1) {
             *hitId = cs->unkC0;
         }
     }
@@ -419,11 +379,8 @@ HdCsHit* HdPntTest(s32 skip0, s32 skip1, VECTOR3* pt, s32* hitId)
             }
         }
     }
-    return &tmpResult;
+    return &hdp_tmpResult;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HDP", HdPntTest);
-#endif
 
 void hdpInit(HdpEnt* stack)
 {

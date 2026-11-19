@@ -40,9 +40,7 @@ void hierPush(DbNode* node, s32 mat, VECTOR3* pos, s32 eo)
         fastStack[i].node = node;
         fastStack[i].matIdx = mat;
         fastStack[i].eoCnt = eo;
-        fastStack[i].pos.vx = pos->vx;
-        fastStack[i].pos.vy = pos->vy;
-        fastStack[i].pos.vz = pos->vz;
+        copyVector(&fastStack[i].pos, pos);
     } else {
         hierStack[i].node = node;
         hierStack[i].matIdx = mat;
@@ -70,7 +68,6 @@ s32 hierPop(HierEnt** out)
     return stackIdx;
 }
 
-#ifdef NON_MATCHING
 void hierTraverse(Cs* cs, DbNode* node)
 {
     HierEnt* e;
@@ -106,8 +103,8 @@ void hierTraverse(Cs* cs, DbNode* node)
                 if (no < 220) {
                     objList[no].node = obj;
                     objList[no].matIdx = e->matIdx;
-                    objList[no].cs = cs;
                     objList[no].eoCnt = e->eoCnt;
+                    objList[no].cs = cs;
                     objList[no].pos.vx = e->pos.vx;
                     objList[no].pos.vy = e->pos.vy;
                     objList[no].pos.vz = e->pos.vz;
@@ -129,12 +126,8 @@ void hierTraverse(Cs* cs, DbNode* node)
                     s32 n;
 
                     n = grp->nChild;
-                    i = 0;
-                    if (n != 0) {
-                        do {
-                            hierPush(grp->child[i], e->matIdx, &e->pos, e->eoCnt);
-                            i++;
-                        } while (i < n);
+                    for (i = 0; i < n; i++) {
+                        hierPush(grp->child[i], e->matIdx, &e->pos, e->eoCnt);
                     }
                 }
             }
@@ -147,9 +140,7 @@ void hierTraverse(Cs* cs, DbNode* node)
 
             eo = &e->node->trans;
             if (!(eo->flags & DB_NODE_HIDDEN)) {
-                e->pos.vx = e->pos.vx + eo->ofs.vx;
-                e->pos.vy = e->pos.vy + eo->ofs.vy;
-                e->pos.vz = e->pos.vz + eo->ofs.vz;
+                addVector(&e->pos, &eo->ofs);
                 eoCnt = eoCnt + 1;
                 i = 0;
                 while (i < eo->nChild) {
@@ -160,15 +151,13 @@ void hierTraverse(Cs* cs, DbNode* node)
         } break;
         case DB_OP_ROT: {
             MATRIX m;
-            VECTOR v;
-            RECT unused;
+            VECTOR3 v;
             s32 i;
 
             rot = &e->node->rot;
             if (!(rot->flags & DB_NODE_HIDDEN)) {
-                e->pos.vx = e->pos.vx + rot->mat.t[0];
-                e->pos.vy = e->pos.vy + rot->mat.t[1];
-                e->pos.vz = e->pos.vz + rot->mat.t[2];
+                setVector(&e->pos, e->pos.vx + rot->mat.t[0], e->pos.vy + rot->mat.t[1],
+                    e->pos.vz + rot->mat.t[2]);
                 v.vx = e->pos.vx;
                 v.vy = e->pos.vy;
                 v.vz = e->pos.vz;
@@ -219,9 +208,6 @@ void hierTraverse(Cs* cs, DbNode* node)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HIER", hierTraverse);
-#endif
 
 s32 hierIsInFov(VECTOR3* ofs, s32 dist, VECTOR3* pos, MATRIX* fov0, MATRIX* fov1)
 {
@@ -312,45 +298,22 @@ void hierCtrlNode(DbNode* unused, HierEnt* e)
     }
 }
 
-#ifdef NON_MATCHING
 s32 hierInBox(HdBox* b, VECTOR3* pos)
 {
-    VECTOR p;
-    VECTOR d;
-    VECTOR v;
-    s32 r;
+    VECTOR3 p;
+    VECTOR3 d;
+    VECTOR3 v;
 
     v.vx = -pos->vx;
     v.vy = -pos->vy;
     v.vz = -pos->vz;
     mathMulVec(&b->mat, &v, &p);
-    r = 0;
-    d.vz = b->lo.vz + p.vz;
-    if (d.vz <= 0) {
-        goto out;
+    if ((d.vz = b->lo.vz + p.vz) > 0 && (d.vy = b->lo.vy + p.vy) > 0 && (d.vx = b->lo.vx + p.vx) > 0
+        && b->hi.vx - d.vx > 0 && b->hi.vy - d.vy > 0 && b->hi.vz - d.vz > 0) {
+        return 1;
     }
-    d.vy = b->lo.vy + p.vy;
-    if (d.vy <= 0) {
-        goto out;
-    }
-    d.vx = b->lo.vx + p.vx;
-    if (d.vx <= 0) {
-        goto out;
-    }
-    if ((b->hi.vx - d.vx) <= 0) {
-        goto out;
-    }
-    if ((b->hi.vy - d.vy) <= 0) {
-        goto out;
-    }
-    r = b->hi.vz - d.vz;
-    r = r > 0;
-out:
-    return r;
+    return 0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HIER", hierInBox);
-#endif
 
 void hierAnimate(DbAnim* a)
 {
@@ -383,7 +346,6 @@ void hierSetWorldEP(s32 ep)
     worldEP = ep;
 }
 
-#ifdef NON_MATCHING
 void hierProc(Db* db, s32 which)
 {
     Cs* cs;
@@ -397,7 +359,11 @@ void hierProc(Db* db, s32 which)
     switchCnt = 0;
     polyCnt = 0;
     eoCnt = 0;
-    fovDepth = (viewGetCurrentFovSet(which) == 13) ? 100 : fovDepthCfg;
+    if (viewGetCurrentFovSet(which) == 13) {
+        fovDepth = 100;
+    } else {
+        fovDepth = fovDepthCfg;
+    }
     cs = csGetWorldCs();
     if (cs->epNode != 0) {
         wordCopy((s32*)&lightList[matIdx], (s32*)&cs->env->light, 8);
@@ -412,20 +378,20 @@ void hierProc(Db* db, s32 which)
         eoCnt = eoCnt + 1;
         hierTraverse(cs, cs->epNode);
     }
-    fovDepth = (viewGetCurrentFovSet(which) == 13) ? 1000 : fovDepthCfg;
-    cs = csGetCsList();
-    if (cs != 0) {
-        do {
-            if (cs->drawMode != 0) {
-                if (matIdx < 70) {
-                    matIdx = matIdx + 1;
-                }
-                csUpdMat(cs, &lightList[matIdx]);
-                eoCnt = eoCnt + 1;
-                hierTraverse(cs, cs->epNode);
+    if (viewGetCurrentFovSet(which) == 13) {
+        fovDepth = 1000;
+    } else {
+        fovDepth = fovDepthCfg;
+    }
+    for (cs = csGetCsList(); cs != 0; cs = cs->next) {
+        if (cs->drawMode != 0) {
+            if (matIdx < 70) {
+                matIdx = matIdx + 1;
             }
-            cs = cs->next;
-        } while (cs != 0);
+            csUpdMat(cs, &lightList[matIdx]);
+            eoCnt = eoCnt + 1;
+            hierTraverse(cs, cs->epNode);
+        }
     }
     SetDrawMode(SPAD_DRMODE, db->draw.dfe, db->draw.dtd, db->draw.tpage, &db->draw.tw);
     SetDrawMode(SPAD_DRMODE_DITHER, db->draw.dfe, 1, db->draw.tpage, &db->draw.tw);
@@ -439,11 +405,7 @@ void hierProc(Db* db, s32 which)
     subPoly3(db, subPolyList, sdSubPolyCount);
     subPoly4(db, subPolyList, sdSubPolyCount);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HIER", hierProc);
-#endif
 
-#ifdef NON_MATCHING
 void hierProcOne(Db* db, Cs* cs)
 {
     objCnt = 0;
@@ -461,9 +423,6 @@ void hierProcOne(Db* db, Cs* cs)
     subPoly3(db, subPolyList, sdSubPolyCount);
     subPoly4(db, subPolyList, sdSubPolyCount);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HIER", hierProcOne);
-#endif
 
 void hierInit(void)
 {

@@ -3,161 +3,171 @@
 
 #include "tm1/HIER_SUB.H"
 
-#define POUT16 ((s16*)pOut)
-#define POUT8 ((u8*)pOut)
+extern SubPolyWord* prim2D[3];
+extern SubPolyWord pOut[5];
 
-extern s32* prim2D[3];
-extern s32 pOut[5];
+extern u32 sdDrawModeTag;
+extern u32 sdDrawModeCode0;
+extern u32 sdDrawModeCode1;
+extern u32 sdDrawModeDitherTag;
+extern u32 sdDrawModeDitherCode0;
+extern u32 sdDrawModeDitherCode1;
 
-static s32* p0;
-static s32* p1;
-static s32* p2;
-static s32* p3;
+static SubPolyWord* p0;
+static SubPolyWord* p1;
+static SubPolyWord* p2;
+static SubPolyWord* p3;
 
-#ifdef NON_MATCHING
 void subPoly3(Db* db, SubPoly* f, s32 count)
 {
-    u8* out;
-    u8* prim;
-    u8* q0;
-    u8* q1;
-    u8* q2;
+    SubPolyWord* out;
+    SubPolyWord* tagPrim;
+    SubPolyWord* colorPrim;
+    DbPoly* colorPoly;
+    SubPolyWord* c0;
+    SubPolyWord* c1;
+    SubPolyWord* c2;
+
+    SubPolyWord* prim;
+    SubPolyWord* q0;
+    SubPolyWord* q1;
+    SubPolyWord* q2;
     DbPoly* poly;
     s32 i;
-    s32 step;
     s32 half;
     s32 half2;
     s32 nWords;
-    s32 sub;
 
-    out = db->prim;
+    out = (SubPolyWord*)db->prim;
     for (i = 0; i < count; i++) {
         poly = f[i].poly;
         if (poly->numVert == 3) {
             half = poly->vertStride;
-            prim = (u8*)f[i].prim;
+            prim = f[i].prim;
             poly = f[i].poly;
-            step = half * 4;
-            q0 = prim + 8;
-            q1 = q0 + step;
-            q2 = q1 + step;
-            p0 = (s32*)q0;
-            p1 = (s32*)q1;
-            p2 = (s32*)q2;
-            nWords = poly->primLen + 1;
-            prim2D[0] = (s32*)out;
-            prim2D[1] = (s32*)(out + nWords * 4);
-            prim2D[2] = (s32*)((u8*)prim2D[1] + nWords * 4);
+            q0 = prim + 2;
+            q1 = q0 + half;
+            q2 = q1 + half;
+            p0 = q0;
+            p1 = q1;
+            p2 = q2;
+            nWords = poly->header.bytes.primLen + 1;
+            prim2D[0] = out;
+            prim2D[1] = out + nWords;
+            prim2D[2] = prim2D[1] + nWords;
             if (db->areaEnd < (u8*)prim2D[2] + 160) {
                 break;
             }
             half2 = half;
-            POUT16[0] = (*(s16*)(prim + 8) + *(s16*)(q1 + 0)) >> 1;
-            POUT16[1] = (*(s16*)(prim + 10) + *(s16*)(q1 + 2)) >> 1;
-            POUT16[2] = (*(s16*)(q1 + 0) + *(s16*)(q2 + 0)) >> 1;
-            POUT16[3] = (*(s16*)(q1 + 2) + *(s16*)(q2 + 2)) >> 1;
-            POUT16[4] = (*(s16*)(q2 + 0) + *(s16*)(prim + 8)) >> 1;
-            POUT16[5] = (*(s16*)(q2 + 2) + *(s16*)(prim + 10)) >> 1;
+            pOut[0].position.vx = (prim[2].position.vx + q1->position.vx) >> 1;
+            pOut[0].position.vy = (prim[2].position.vy + q1->position.vy) >> 1;
+            pOut[1].position.vx = (q1->position.vx + q2->position.vx) >> 1;
+            pOut[1].position.vy = (q1->position.vy + q2->position.vy) >> 1;
+            pOut[2].position.vx = (q2->position.vx + prim[2].position.vx) >> 1;
+            pOut[2].position.vy = (q2->position.vy + prim[2].position.vy) >> 1;
             subLoadPoly3Words(2, half);
-            if ((f[i].poly->numUV & 0x7F) != 0) {
-                u8* r0;
-                u8* r1;
-                u8* r2;
+            if ((f[i].poly->header.word & 0x7F) != 0) {
+                SubPolyWord* r0;
+                SubPolyWord* r1;
+                SubPolyWord* r2;
 
-                r0 = (u8*)p0;
-                r1 = (u8*)p1;
-                r2 = (u8*)p2;
-                p0 = (s32*)(r0 + 4);
-                p1 = (s32*)(r1 + 4);
-                p2 = (s32*)(r2 + 4);
-                POUT8[0] = (r0[4] + r1[4]) >> 1;
-                POUT8[1] = (r0[5] + r1[5]) >> 1;
-                POUT8[4] = (r1[4] + r2[4]) >> 1;
-                POUT8[5] = (r1[5] + r2[5]) >> 1;
-                POUT8[8] = (r2[4] + r0[4]) >> 1;
-                POUT8[9] = (r2[5] + r0[5]) >> 1;
-                POUT16[3] = *(u16*)(r0 + 6);
-                POUT16[5] = *(u16*)(r1 + 6);
+                r0 = p0;
+                r1 = p1;
+                r2 = p2;
+                p0 = r0 + 1;
+                p1 = r1 + 1;
+                p2 = r2 + 1;
+                pOut[0].uv.u = (r0[1].uv.u + r1[1].uv.u) >> 1;
+                pOut[0].uv.v = (r0[1].uv.v + r1[1].uv.v) >> 1;
+                pOut[1].uv.u = (r1[1].uv.u + r2[1].uv.u) >> 1;
+                pOut[1].uv.v = (r1[1].uv.v + r2[1].uv.v) >> 1;
+                pOut[2].uv.u = (r2[1].uv.u + r0[1].uv.u) >> 1;
+                pOut[2].uv.v = (r2[1].uv.v + r0[1].uv.v) >> 1;
+                pOut[1].uv.page = r0[1].uv.page;
+                pOut[2].uv.page = r1[1].uv.page;
                 subLoadPoly3Words(3, half);
             }
-            prim = (u8*)f[i].prim;
-            poly = f[i].poly;
-            q0 = prim + 4;
-            p0 = (s32*)q0;
-            if (poly->numColor >= 2 || (sub = poly->numNormal) >= 2) {
-                q1 = q0 + step;
-                q2 = q1 + step;
-                p1 = (s32*)q1;
-                p2 = (s32*)q2;
-                POUT8[0] = (prim[4] + q1[0]) >> 1;
-                POUT8[1] = (prim[5] + q1[1]) >> 1;
-                POUT8[2] = (prim[6] + q1[2]) >> 1;
-                POUT8[4] = (q1[0] + q2[0]) >> 1;
-                POUT8[5] = (q1[1] + q2[1]) >> 1;
-                POUT8[6] = (q1[2] + q2[2]) >> 1;
-                POUT8[7] = q1[3];
-                POUT8[8] = (q2[0] + prim[4]) >> 1;
-                POUT8[9] = (q2[1] + prim[5]) >> 1;
-                POUT8[10] = (q2[2] + prim[6]) >> 1;
+            colorPrim = f[i].prim;
+            colorPoly = f[i].poly;
+            c0 = colorPrim + 1;
+            p0 = c0;
+            if (colorPoly->header.bytes.numColor >= 2 || colorPoly->numNormal >= 2) {
+                c1 = c0 + half;
+                c2 = c1 + half;
+                p1 = c1;
+                p2 = c2;
+                pOut[0].color.r = (colorPrim[1].color.r + c1->color.r) >> 1;
+                pOut[0].color.g = (colorPrim[1].color.g + c1->color.g) >> 1;
+                pOut[0].color.b = (colorPrim[1].color.b + c1->color.b) >> 1;
+                pOut[1].color.r = (c1->color.r + c2->color.r) >> 1;
+                pOut[1].color.g = (c1->color.g + c2->color.g) >> 1;
+                pOut[1].color.b = (c1->color.b + c2->color.b) >> 1;
+                pOut[1].color.cd = c1->color.cd;
+                pOut[2].color.r = (c2->color.r + colorPrim[1].color.r) >> 1;
+                pOut[2].color.g = (c2->color.g + colorPrim[1].color.g) >> 1;
+                pOut[2].color.b = (c2->color.b + colorPrim[1].color.b) >> 1;
                 subLoadPoly3Words(1, half2);
             } else {
-                prim2D[0][1] = *(s32*)(prim + 4);
-                prim2D[1][1] = *(s32*)(prim + 4);
-                prim2D[2][1] = *(s32*)(prim + 4);
+                prim2D[0][1].word = colorPrim[1].word;
+                prim2D[1][1].word = colorPrim[1].word;
+                prim2D[2][1].word = colorPrim[1].word;
             }
-            prim = (u8*)f[i].prim;
-            prim[3] = nWords - 1;
-            ((u8*)prim2D[0])[3] = nWords - 1;
-            ((u8*)prim2D[1])[3] = nWords - 1;
-            ((u8*)prim2D[2])[3] = nWords - 1;
-            out = (u8*)prim2D[2] + nWords * 4;
-            subAddPrim(db, &f[i], (DR_MODE**)&out, (void**)prim2D);
+            tagPrim = f[i].prim;
+            tagPrim->bytes[3] = nWords - 1;
+            prim2D[0]->bytes[3] = nWords - 1;
+            prim2D[1]->bytes[3] = nWords - 1;
+            prim2D[2]->bytes[3] = nWords - 1;
+            out = prim2D[2] + nWords;
+            subAddPrim(db, &f[i], &out, prim2D);
         }
     }
-    db->prim = out;
+    db->prim = (u8*)out;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HIER_SUB", subPoly3);
-#endif
 
 void subLoadPoly3Words(s32 col, s32 row)
 {
     s32* q;
 
-    q = prim2D[0] + col;
-    *q = pOut[1];
+    q = &prim2D[0][col].word;
+    *q = pOut[1].word;
     q += row;
-    *q = *p1;
+    *q = p1->word;
     q += row;
-    *q = pOut[0];
-    q = prim2D[1] + col;
-    *q = pOut[1];
+    *q = pOut[0].word;
+    q = &prim2D[1][col].word;
+    *q = pOut[1].word;
     q += row;
-    *q = pOut[2];
+    *q = pOut[2].word;
     q += row;
-    *q = *p2;
-    q = prim2D[2] + col;
-    *q = pOut[1];
+    *q = p2->word;
+    q = &prim2D[2][col].word;
+    *q = pOut[1].word;
     q += row;
-    *q = pOut[2];
+    *q = pOut[2].word;
     q += row;
-    *q = pOut[0];
-    *p1 = pOut[2];
-    *p2 = pOut[0];
+    *q = pOut[0].word;
+    p1->word = pOut[2].word;
+    p2->word = pOut[0].word;
 }
 
-#ifdef NON_MATCHING
 void subPoly4(Db* db, SubPoly* f, s32 count)
 {
-    u8* out;
-    u8* prim;
-    u8* q0;
-    u8* q1;
-    u8* q2;
-    u8* q3;
+    SubPolyWord* out;
+    SubPolyWord* tagPrim;
+    SubPolyWord* colorPrim;
+    DbPoly* colorPoly;
+    SubPolyWord* color0;
+    SubPolyWord* color1;
+    SubPolyWord* color2;
+    SubPolyWord* color3;
+
+    SubPolyWord* prim;
+    SubPolyWord* q0;
+    SubPolyWord* q1;
+    SubPolyWord* q2;
+    SubPolyWord* q3;
     DbPoly* poly;
     s32 i;
-    s32 step;
     s32 half;
     s32 half2;
     s32 nWords;
@@ -165,94 +175,93 @@ void subPoly4(Db* db, SubPoly* f, s32 count)
     s32 my0;
     s32 mx2;
     s32 my2;
-    s32 sub;
 
-    out = db->prim;
+    out = (SubPolyWord*)db->prim;
     for (i = 0; i < count; i++) {
         poly = f[i].poly;
         if (poly->numVert == 4) {
             half = poly->vertStride;
-            prim = (u8*)f[i].prim;
+            prim = f[i].prim;
             poly = f[i].poly;
-            step = half * 4;
-            q0 = prim + 8;
-            q1 = q0 + step;
-            q2 = q1 + step;
-            q3 = q2 + step;
-            p0 = (s32*)q0;
-            p1 = (s32*)q1;
-            p2 = (s32*)q2;
-            p3 = (s32*)q3;
-            nWords = poly->primLen + 1;
-            prim2D[0] = (s32*)out;
-            prim2D[1] = (s32*)(out + nWords * 4);
-            prim2D[2] = (s32*)((u8*)prim2D[1] + nWords * 4);
+            q0 = prim + 2;
+            q1 = q0 + half;
+            q2 = q1 + half;
+            q3 = q2 + half;
+            p0 = q0;
+            p1 = q1;
+            p2 = q2;
+            p3 = q3;
+            nWords = poly->header.bytes.primLen + 1;
+            prim2D[0] = out;
+            prim2D[1] = out + nWords;
+            prim2D[2] = prim2D[1] + nWords;
             if (db->areaEnd < (u8*)prim2D[2] + 160) {
                 break;
             }
             half2 = half;
-            mx0 = (*(s16*)(prim + 8) + *(s16*)(q2 + 0)) >> 1;
-            POUT16[0] = mx0;
-            my0 = (*(s16*)(prim + 10) + *(s16*)(q2 + 2)) >> 1;
-            POUT16[1] = my0;
-            POUT16[2] = (*(s16*)(q1 + 0) + *(s16*)(prim + 8)) >> 1;
-            POUT16[3] = (*(s16*)(q1 + 2) + *(s16*)(prim + 10)) >> 1;
-            mx2 = (*(s16*)(q1 + 0) + *(s16*)(q3 + 0)) >> 1;
-            POUT16[4] = mx2;
-            my2 = (*(s16*)(q1 + 2) + *(s16*)(q3 + 2)) >> 1;
-            POUT16[5] = my2;
-            POUT16[6] = (*(s16*)(q3 + 0) + *(s16*)(q2 + 0)) >> 1;
-            POUT16[8] = (mx0 + mx2) >> 1;
-            POUT16[9] = (my0 + my2) >> 1;
-            POUT16[7] = (*(s16*)(q3 + 2) + *(s16*)(q2 + 2)) >> 1;
+            mx0 = (prim[2].position.vx + q2->position.vx) >> 1;
+            pOut[0].position.vx = mx0;
+            my0 = (prim[2].position.vy + q2->position.vy) >> 1;
+            pOut[0].position.vy = my0;
+            pOut[1].position.vx = (q1->position.vx + prim[2].position.vx) >> 1;
+            pOut[1].position.vy = (q1->position.vy + prim[2].position.vy) >> 1;
+            mx2 = (q1->position.vx + q3->position.vx) >> 1;
+            pOut[2].position.vx = mx2;
+            my2 = (q1->position.vy + q3->position.vy) >> 1;
+            pOut[2].position.vy = my2;
+            pOut[3].position.vx = (q3->position.vx + q2->position.vx) >> 1;
+            pOut[3].position.vy = (q3->position.vy + q2->position.vy) >> 1;
+            pOut[4].position.vx = (mx0 + mx2) >> 1;
+            pOut[4].position.vy = (my0 + my2) >> 1;
             subLoadPoly4Words(2, half);
-            if ((f[i].poly->numUV & 0x7F) != 0) {
-                u8* r0;
-                u8* r1;
-                u8* r2;
-                u8* r3;
+            if ((f[i].poly->header.word & 0x7F) != 0) {
+                SubPolyWord* r0;
+                SubPolyWord* r1;
+                SubPolyWord* r2;
+                SubPolyWord* r3;
                 s32 u0;
                 s32 v0;
                 s32 u2;
                 s32 v2;
 
-                r0 = (u8*)p0;
-                r1 = (u8*)p1;
-                r2 = (u8*)p2;
-                r3 = (u8*)p3;
-                p0 = (s32*)(r0 + 4);
-                p1 = (s32*)(r1 + 4);
-                p2 = (s32*)(r2 + 4);
-                p3 = (s32*)(r3 + 4);
-                u0 = (r0[4] + r2[4]) >> 1;
-                POUT8[0] = u0;
-                v0 = (r0[5] + r2[5]) >> 1;
-                POUT8[1] = v0;
-                POUT8[4] = (r1[4] + r0[4]) >> 1;
-                POUT8[5] = (r1[5] + r0[5]) >> 1;
-                u2 = (r1[4] + r3[4]) >> 1;
-                POUT8[8] = u2;
-                v2 = (r1[5] + r3[5]) >> 1;
-                POUT8[9] = v2;
-                POUT8[12] = (r3[4] + r2[4]) >> 1;
-                POUT8[16] = (u0 + u2) >> 1;
-                POUT8[13] = (r3[5] + r2[5]) >> 1;
-                POUT8[17] = (v0 + v2) >> 1;
-                POUT16[1] = *(u16*)(r0 + 6);
-                POUT16[9] = *(u16*)(r1 + 6);
-                POUT16[3] = *(u16*)(r1 + 6);
-                POUT16[5] = *(u16*)(r1 + 6);
+                r0 = p0;
+                r1 = p1;
+                r2 = p2;
+                r3 = p3;
+                p0 = r0 + 1;
+                p1 = r1 + 1;
+                p2 = r2 + 1;
+                p3 = r3 + 1;
+                u0 = (r0[1].uv.u + r2[1].uv.u) >> 1;
+                pOut[0].uv.u = u0;
+                v0 = (r0[1].uv.v + r2[1].uv.v) >> 1;
+                pOut[0].uv.v = v0;
+                pOut[1].uv.u = (r1[1].uv.u + r0[1].uv.u) >> 1;
+                pOut[1].uv.v = (r1[1].uv.v + r0[1].uv.v) >> 1;
+                u2 = (r1[1].uv.u + r3[1].uv.u) >> 1;
+                pOut[2].uv.u = u2;
+                v2 = (r1[1].uv.v + r3[1].uv.v) >> 1;
+                pOut[2].uv.v = v2;
+                pOut[3].uv.u = (r3[1].uv.u + r2[1].uv.u) >> 1;
+                pOut[3].uv.v = (r3[1].uv.v + r2[1].uv.v) >> 1;
+                pOut[4].uv.u = (u0 + u2) >> 1;
+                pOut[4].uv.v = (v0 + v2) >> 1;
+                pOut[0].uv.page = r0[1].uv.page;
+                pOut[4].uv.page = r1[1].uv.page;
+                pOut[1].uv.page = r1[1].uv.page;
+                pOut[2].uv.page = r1[1].uv.page;
                 subLoadPoly4Words(3, half);
-                *(u16*)((u8*)prim2D[1] + 14) = *(u16*)((u8*)p0 + 2);
-                p1 = (s32*)((u8*)prim2D[1] + 12);
-                p1 = (s32*)((u8*)prim2D[2] + 12);
-                *(u16*)((u8*)prim2D[2] + 14) = *(u16*)((u8*)p0 + 2);
+                /* Both palette updates use p1 in the original code. */
+                p1 = prim2D[1] + 3;
+                p1->uv.page = p0->uv.page;
+                p1 = prim2D[2] + 3;
+                p1->uv.page = p0->uv.page;
             }
-            prim = (u8*)f[i].prim;
-            poly = f[i].poly;
-            q0 = prim + 4;
-            p0 = (s32*)q0;
-            if (poly->numColor >= 2 || (sub = poly->numNormal) >= 2) {
+            colorPrim = f[i].prim;
+            colorPoly = f[i].poly;
+            color0 = colorPrim + 1;
+            p0 = color0;
+            if (colorPoly->header.bytes.numColor >= 2 || colorPoly->numNormal >= 2) {
                 s32 b0;
                 s32 c0;
                 s32 b2;
@@ -260,118 +269,114 @@ void subPoly4(Db* db, SubPoly* f, s32 count)
                 s32 d0;
                 s32 d2;
 
-                q1 = q0 + step;
-                q2 = q1 + step;
-                q3 = q2 + step;
-                p1 = (s32*)q1;
-                p2 = (s32*)q2;
-                p3 = (s32*)q3;
-                b0 = (prim[4] + q2[0]) >> 1;
-                POUT8[0] = b0;
-                c0 = (prim[5] + q2[1]) >> 1;
-                POUT8[1] = c0;
-                d0 = (prim[6] + q2[2]) >> 1;
-                POUT8[2] = d0;
-                POUT8[3] = prim[7];
-                POUT8[4] = (q1[0] + prim[4]) >> 1;
-                POUT8[5] = (q1[1] + prim[5]) >> 1;
-                POUT8[6] = (q1[2] + prim[6]) >> 1;
-                POUT8[7] = prim[7];
-                b2 = (q1[0] + q3[0]) >> 1;
-                POUT8[8] = b2;
-                c2 = (q1[1] + q3[1]) >> 1;
-                POUT8[9] = c2;
-                d2 = (q1[2] + q3[2]) >> 1;
-                POUT8[10] = d2;
-                POUT8[12] = (q3[0] + q2[0]) >> 1;
-                POUT8[13] = (q3[1] + q2[1]) >> 1;
-                POUT8[14] = (q3[2] + q2[2]) >> 1;
-                POUT8[16] = (b0 + b2) >> 1;
-                POUT8[17] = (c0 + c2) >> 1;
-                POUT8[18] = (d0 + d2) >> 1;
-                POUT8[19] = prim[7];
+                color1 = color0 + half;
+                color2 = color1 + half;
+                color3 = color2 + half;
+                p1 = color1;
+                p2 = color2;
+                p3 = color3;
+                b0 = (colorPrim[1].color.r + color2->color.r) >> 1;
+                pOut[0].color.r = b0;
+                c0 = (colorPrim[1].color.g + color2->color.g) >> 1;
+                pOut[0].color.g = c0;
+                d0 = (colorPrim[1].color.b + color2->color.b) >> 1;
+                pOut[0].color.b = d0;
+                pOut[0].color.cd = colorPrim[1].color.cd;
+                pOut[1].color.r = (color1->color.r + colorPrim[1].color.r) >> 1;
+                pOut[1].color.g = (color1->color.g + colorPrim[1].color.g) >> 1;
+                pOut[1].color.b = (color1->color.b + colorPrim[1].color.b) >> 1;
+                pOut[1].color.cd = colorPrim[1].color.cd;
+                b2 = (color1->color.r + color3->color.r) >> 1;
+                pOut[2].color.r = b2;
+                c2 = (color1->color.g + color3->color.g) >> 1;
+                pOut[2].color.g = c2;
+                d2 = (color1->color.b + color3->color.b) >> 1;
+                pOut[2].color.b = d2;
+                pOut[3].color.r = (color3->color.r + color2->color.r) >> 1;
+                pOut[3].color.g = (color3->color.g + color2->color.g) >> 1;
+                pOut[3].color.b = (color3->color.b + color2->color.b) >> 1;
+                pOut[4].color.r = (b0 + b2) >> 1;
+                pOut[4].color.g = (c0 + c2) >> 1;
+                pOut[4].color.b = (d0 + d2) >> 1;
+                pOut[4].color.cd = colorPrim[1].color.cd;
                 subLoadPoly4Words(1, half2);
             } else {
-                prim2D[0][1] = *(s32*)(prim + 4);
-                prim2D[1][1] = *(s32*)(prim + 4);
-                prim2D[2][1] = *(s32*)(prim + 4);
+                prim2D[0][1].word = colorPrim[1].word;
+                prim2D[1][1].word = colorPrim[1].word;
+                prim2D[2][1].word = colorPrim[1].word;
             }
-            prim = (u8*)f[i].prim;
-            prim[3] = nWords - 1;
-            ((u8*)prim2D[0])[3] = nWords - 1;
-            ((u8*)prim2D[1])[3] = nWords - 1;
-            ((u8*)prim2D[2])[3] = nWords - 1;
-            out = (u8*)prim2D[2] + nWords * 4;
-            subAddPrim(db, &f[i], (DR_MODE**)&out, (void**)prim2D);
+            tagPrim = f[i].prim;
+            tagPrim->bytes[3] = nWords - 1;
+            prim2D[0]->bytes[3] = nWords - 1;
+            prim2D[1]->bytes[3] = nWords - 1;
+            prim2D[2]->bytes[3] = nWords - 1;
+            out = prim2D[2] + nWords;
+            subAddPrim(db, &f[i], &out, prim2D);
         }
     }
-    db->prim = out;
+    db->prim = (u8*)out;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HIER_SUB", subPoly4);
-#endif
 
 void subLoadPoly4Words(s32 col, s32 row)
 {
     s32* q;
 
-    q = prim2D[0] + col;
-    *q = pOut[0];
+    q = &prim2D[0][col].word;
+    *q = pOut[0].word;
     q += row;
-    *q = pOut[4];
+    *q = pOut[4].word;
     q += row;
-    *q = *p2;
+    *q = p2->word;
     q += row;
-    *q = pOut[3];
-    q = prim2D[1] + col;
-    *q = pOut[1];
+    *q = pOut[3].word;
+    q = &prim2D[1][col].word;
+    *q = pOut[1].word;
     q += row;
-    *q = *p1;
+    *q = p1->word;
     q += row;
-    *q = pOut[4];
+    *q = pOut[4].word;
     q += row;
-    *q = pOut[2];
-    q = prim2D[2] + col;
-    *q = pOut[4];
+    *q = pOut[2].word;
+    q = &prim2D[2][col].word;
+    *q = pOut[4].word;
     q += row;
-    *q = pOut[2];
+    *q = pOut[2].word;
     q += row;
-    *q = pOut[3];
+    *q = pOut[3].word;
     q += row;
-    *q = *p3;
-    *p1 = pOut[1];
-    *p2 = pOut[0];
-    *p3 = pOut[4];
+    *q = p3->word;
+    p1->word = pOut[1].word;
+    p2->word = pOut[0].word;
+    p3->word = pOut[4].word;
 }
 
-#ifdef NON_MATCHING
-void subAddPrim(Db* db, SubPoly* f, DR_MODE** cursor, void** extra)
+void subAddPrim(Db* db, SubPoly* f, SubPolyWord** cursor, SubPolyWord** extra)
 {
-    if ((f->poly->numUV & DB_POLY_DRAW_MODE) != 0 || f->dither != 0) {
-        (*cursor)->tag = SPAD_DRMODE->tag;
-        (*cursor)->code[0] = SPAD_DRMODE->code[0];
-        (*cursor)->code[1] = SPAD_DRMODE->code[1];
+    if ((f->poly->header.word & DB_POLY_DRAW_MODE) != 0 || f->dither != 0) {
+        (*cursor)->word = sdDrawModeTag;
+        (*cursor)[1].word = sdDrawModeCode0;
+        (*cursor)[2].word = sdDrawModeCode1;
         AddPrim(db->ot + f->otIdx, *cursor);
-        *cursor += 1;
+        *cursor += sizeof(DR_MODE) / sizeof(SubPolyWord);
         AddPrim(db->ot + f->otIdx, f->prim);
         AddPrim(db->ot + f->otIdx, extra[0]);
         AddPrim(db->ot + f->otIdx, extra[1]);
         AddPrim(db->ot + f->otIdx, extra[2]);
         if (f->dither != 0) {
-            (*cursor)->tag = SPAD_DRMODE_DITHER->tag;
-            (*cursor)->code[0] = SPAD_DRMODE_DITHER->code[0];
-            (*cursor)->code[1] = SPAD_DRMODE_DITHER->code[1];
+            (*cursor)->word = sdDrawModeDitherTag;
+            (*cursor)[1].word = sdDrawModeDitherCode0;
+            (*cursor)[2].word = sdDrawModeDitherCode1;
         } else {
-            (*cursor)->tag = SPAD_DRMODE->tag;
-            (*cursor)->code[0] = SPAD_DRMODE->code[0];
-            (*cursor)->code[1] = SPAD_DRMODE->code[1];
+            (*cursor)->word = sdDrawModeTag;
+            (*cursor)[1].word = sdDrawModeCode0;
+            (*cursor)[2].word = sdDrawModeCode1;
         }
-        if ((f->poly->numUV & DB_POLY_DRAW_MODE) != 0) {
-            (*cursor)->code[1] = *f->texWindow;
-            *(u8*)&(*cursor)->code[0] = f->tpage;
+        if ((f->poly->header.word & DB_POLY_DRAW_MODE) != 0) {
+            (*cursor)[2].word = *f->texWindow;
+            (*cursor)[1].bytes[0] = f->tpage;
         }
         AddPrim(db->ot + f->otIdx, *cursor);
-        *cursor += 1;
+        *cursor += sizeof(DR_MODE) / sizeof(SubPolyWord);
     } else {
         AddPrim(db->ot + f->otIdx, f->prim);
         AddPrim(db->ot + f->otIdx, extra[0]);
@@ -379,6 +384,3 @@ void subAddPrim(Db* db, SubPoly* f, DR_MODE** cursor, void** extra)
         AddPrim(db->ot + f->otIdx, extra[2]);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HIER_SUB", subAddPrim);
-#endif

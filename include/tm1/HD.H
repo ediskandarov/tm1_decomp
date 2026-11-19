@@ -11,8 +11,8 @@ typedef struct HdEnt {
     /* 0x00 */ DbNode* node;
     /* 0x04 */ VECTOR3 v;
     /* 0x10 */ s32 matIdx;
-    /* 0x14 */ u16 id0;
-    /* 0x16 */ u16 id1;
+    /* 0x14 */ s16 id0;
+    /* 0x16 */ s16 id1;
 } HdEnt; /* 0x18 */
 
 typedef struct HdCsHit {
