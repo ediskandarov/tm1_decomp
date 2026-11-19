@@ -477,16 +477,8 @@ void timIntoVRAM(u_long* tim)
     }
 }
 
-#ifndef NON_MATCHING
-static const char sErrNotTms[] = "Error: %s isn't a valid TMS file\n";
-static const char sErrNotCurrent[] = "Error: %s isn't the current version\n";
-static const char sErrFileVersion[] = "       (the file is version %d, current version is %d)\n";
-#endif
-
-#ifdef NON_MATCHING
 s32 shellTextureInit(u_long* p)
 {
-    s32 unused[2];
     s32 ret;
     s32 count;
     u32 size;
@@ -496,35 +488,29 @@ s32 shellTextureInit(u_long* p)
         return 0;
     }
     if (*p++ != 0x50535854) {
+        p--;
         printf("Error: %s isn't a valid TMS file\n", shellGetCurrentTextureFileName());
         exit(-1);
     }
-    if (*p != 0x43) {
+    if (*p++ != 0x43) {
+        p--;
         printf("Error: %s isn't the current version\n", shellGetCurrentTextureFileName());
         printf("       (the file is version %d, current version is %d)\n", *p, 0x43);
         exit(-1);
     }
-    p++;
     ret = *p;
     p++;
     count = *p;
     p++;
     size = *p;
-    i = 0;
-    if (count > 0) {
-        do {
-            p++;
-            timIntoVRAM(p);
-            p += size / 4;
-            size = *p;
-            i++;
-        } while (i < count);
+    for (i = 0; i < count; i++) {
+        p++;
+        timIntoVRAM(p);
+        p += size / 4;
+        size = *p;
     }
     return ret;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/SHELL", shellTextureInit);
-#endif
 
 s32 shellGetGameState(void)
 {
