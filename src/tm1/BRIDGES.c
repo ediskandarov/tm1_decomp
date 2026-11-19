@@ -389,7 +389,6 @@ void InitLevel3Bridges(void)
     bridges[17].obj[1] = 2;
 }
 
-#ifdef NON_MATCHING
 void InitLevel4Bridges(void)
 {
     s16 i;
@@ -965,11 +964,7 @@ void InitLevel4Bridges(void)
     bridges[53].obj[1] = 0x15;
     bridges[53].unk08 = 3;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/BRIDGES", InitLevel4Bridges);
-#endif
 
-#ifdef NON_MATCHING
 void InitLevel5Bridges(void)
 {
     s16 i;
@@ -1574,9 +1569,6 @@ void InitLevel5Bridges(void)
     bridges[57].obj[0] = 0x27;
     bridges[57].obj[1] = 0x28;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/BRIDGES", InitLevel5Bridges);
-#endif
 
 void InitLevel6Bridges(void)
 {
