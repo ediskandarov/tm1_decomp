@@ -219,7 +219,6 @@ void UAeffectUpdateTVs(void)
     }
 }
 
-#ifdef NON_MATCHING
 void UAeffectInitTV(DbNode* node)
 {
     DbPoly* poly;
@@ -254,9 +253,6 @@ void UAeffectInitTV(DbNode* node)
         gTVsTPage[1] = GetTPage(2, 0, 384, 0);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/UAEFFECT", UAeffectInitTV);
-#endif
 
 void UAeffectInitMonsterTruckWheel(DbNode* node)
 {
