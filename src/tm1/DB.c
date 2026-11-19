@@ -22,7 +22,8 @@
 #define DMD_MAGIC 0x50535844
 #define DMD_VERSION 0x43
 
-extern void exit(s32 code);
+/* noreturn preserves dbInit's matching error path without a goto. */
+extern void exit(s32 code) __attribute__((noreturn));
 
 s32 db3DEnvironmentTrap = 0;
 char dbOlder[] = "older";
@@ -31,7 +32,15 @@ char dbNewer[] = "newer";
 static DbNode* gHierNodes[250];
 static VECTOR3 location[250];
 
-#ifdef NON_MATCHING
+static const char dbInvalidFile[] = "Error: %s isn't a valid DMD file\n";
+static const char dbInvalidVersion[] = "Error: %s isn't the current version\n";
+static const char dbFileVersion[] = "       (the file is version %d, current version is %d)\n";
+static const char dbTextureVersion[] = "Error: %s is %s than its corresponding TMS file\n";
+static const char dbNullGroup[] = "Internal error with the DMD file: first group was null\n";
+static const char dbBadOpcode[] = "Bad hierarchy opcode %d \n";
+static const char dbDuplicateEnvironment[]
+    = "Warning: found another node flagged as the 3D environment\n";
+
 void dbInit(u32 tmsVersion)
 {
     s32* p;
@@ -40,13 +49,13 @@ void dbInit(u32 tmsVersion)
 
     p = (s32*)0x800188B8;
     if (*p != DMD_MAGIC) {
-        printf("Error: %s isn't a valid DMD file\n", shellGetCurrentDatabaseFileName());
+        printf(dbInvalidFile, shellGetCurrentDatabaseFileName());
         exit(-1);
     }
     p = (s32*)0x800188BC;
     if (*p != DMD_VERSION) {
-        printf("Error: %s isn't the current version\n", shellGetCurrentDatabaseFileName());
-        printf("       (the file is version %d, current version is %d)\n", *p, DMD_VERSION);
+        printf(dbInvalidVersion, shellGetCurrentDatabaseFileName());
+        printf(dbFileVersion, *p, DMD_VERSION);
         exit(-1);
     }
     p = (s32*)0x800188C0;
@@ -59,23 +68,20 @@ void dbInit(u32 tmsVersion)
         if ((u32)*p < tmsVersion) {
             rel = dbOlder;
         }
-        printf("Error: %s is %s than its corresponding TMS file\n", name, rel);
+        printf(dbTextureVersion, name, rel);
     }
     p += 3;
     count = *p;
     p++;
     for (i = 0; i < count; i++) {
         if (*p == 0) {
-            printf("Internal error with the DMD file: first group was null\n");
+            printf(dbNullGroup);
             return;
         }
         dbScanForInteractiveStuff((DbNode*)*p);
         p++;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/DB", dbInit);
-#endif
 
 Cs* dbInitCsForAModel(DbNode* node)
 {
@@ -87,7 +93,6 @@ Cs* dbInitCsForAModel(DbNode* node)
     return cs;
 }
 
-#ifdef NON_MATCHING
 void dbScanForInteractiveStuff(DbNode* group)
 {
     VECTOR3 parentLoc;
@@ -157,13 +162,13 @@ void dbScanForInteractiveStuff(DbNode* group)
             }
             case DB_OP_TRANS: {
                 s32 i, n;
+                kind = node->h.kind;
                 loc->vx = loc->vx + node->trans.ofs.vx;
                 loc->vy = loc->vy + node->trans.ofs.vy;
                 loc->vz = loc->vz + node->trans.ofs.vz;
                 parentLoc.vx = loc->vx;
                 parentLoc.vy = loc->vy;
                 parentLoc.vz = loc->vz;
-                kind = node->h.kind;
                 n = node->trans.nChild;
                 for (i = 0; i < n; i++) {
                     location[sp].vx = loc->vx;
@@ -197,24 +202,22 @@ void dbScanForInteractiveStuff(DbNode* group)
                 }
                 break;
             }
-            case DB_OP_UNK_6:
-            case DB_OP_BOX:
-            case DB_OP_VOLUME:
-                kind = 0;
-                break;
             case DB_OP_SWITCH: {
                 s32 i;
+                DbSwitch* sw;
+                sw = &node->sw;
                 kind = node->h.kind;
-                for (i = 0; i < node->sw.nChild; i++) {
+                for (i = 0; i < sw->nChild; i++) {
                     location[sp].vx = loc->vx;
                     location[sp].vy = loc->vy;
                     location[sp].vz = loc->vz;
-                    gHierNodes[sp] = node->sw.child[i];
+                    gHierNodes[sp] = sw->child[i];
                     sp++;
                 }
                 break;
             }
             case DB_OP_CTRL:
+                kind = node->h.kind;
                 location[sp].vx = loc->vx;
                 location[sp].vy = loc->vy;
                 location[sp].vz = loc->vz;
@@ -225,29 +228,29 @@ void dbScanForInteractiveStuff(DbNode* group)
                 location[sp].vz = loc->vz;
                 gHierNodes[sp] = node->ctrl.childIn;
                 sp++;
-                kind = node->h.kind;
+                break;
+            case DB_OP_UNK_6:
+            case DB_OP_BOX:
+            case DB_OP_VOLUME:
+                kind = 0;
                 break;
             case DB_OP_UNK_10:
             default:
                 kind = 0;
-                printf("Bad hierarchy opcode %d \n", node->h.op);
+                printf(dbBadOpcode, node->h.op);
                 break;
             }
             dbProcessInteractives(kind, node, loc, parent, &parentLoc);
         }
     } while (sp > 0);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/DB", dbScanForInteractiveStuff);
-#endif
 
-#ifdef NON_MATCHING
 void dbProcessInteractives(s32 type, DbNode* node, VECTOR3* loc, s32 parent, VECTOR3* parentLoc)
 {
+    Cs* cs;
+
     switch (type) {
     case UA_UNK_3: {
-        Cs* cs;
-
         cs = dbInitCsForAModel(node);
         cs->otIndex = 0xFFE;
         cs->unk0C = 0;
@@ -255,15 +258,14 @@ void dbProcessInteractives(s32 type, DbNode* node, VECTOR3* loc, s32 parent, VEC
     }
     case UA_3D_ENVIRONMENT:
         if (db3DEnvironmentTrap != 0) {
-            printf("Warning: found another node flagged as the 3D environment\n");
+            printf(dbDuplicateEnvironment);
             break;
         }
-        csSetEpNode(csGetWorldCs(), node);
+        cs = csGetWorldCs();
+        csSetEpNode(cs, node);
         db3DEnvironmentTrap = 1;
         break;
     case UA_SKY: {
-        Cs* cs;
-
         cs = csCreate();
         csSetEpNode(cs, node);
         viewSetSky(cs);
@@ -271,43 +273,56 @@ void dbProcessInteractives(s32 type, DbNode* node, VECTOR3* loc, s32 parent, VEC
         break;
     }
     case UA_ICE_CREAM_TRUCK:
-        UAAddCs(dbInitCsForAModel(node), 0xA);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0xA);
         break;
     case UA_TAXI_CAB:
-        UAAddCs(dbInitCsForAModel(node), 0x14);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x14);
         break;
     case UA_SEMI_TRUCK:
-        UAAddCs(dbInitCsForAModel(node), 0x1E);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x1E);
         break;
     case UA_MONSTER_TRUCK:
-        UAAddCs(dbInitCsForAModel(node), 0x28);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x28);
         break;
     case UA_POLICE_CAR:
-        UAAddCs(dbInitCsForAModel(node), 0x32);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x32);
         break;
     case UA_LAMBORGHINI:
-        UAAddCs(dbInitCsForAModel(node), 0x3C);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x3C);
         break;
     case UA_HUMVEE:
-        UAAddCs(dbInitCsForAModel(node), 0x46);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x46);
         break;
     case UA_HARLEY:
-        UAAddCs(dbInitCsForAModel(node), 0x50);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x50);
         break;
     case UA_DUNE_BUGGY:
-        UAAddCs(dbInitCsForAModel(node), 0x5A);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x5A);
         break;
     case UA_LOW_RIDER:
-        UAAddCs(dbInitCsForAModel(node), 0x64);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x64);
         break;
     case UA_CORVETTE:
-        UAAddCs(dbInitCsForAModel(node), 0x6E);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x6E);
         break;
     case UA_MAD_MAX:
-        UAAddCs(dbInitCsForAModel(node), 0x78);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x78);
         break;
     case UA_BOSS_CAR:
-        UAAddCs(dbInitCsForAModel(node), 0x82);
+        cs = dbInitCsForAModel(node);
+        UAAddCs(cs, 0x82);
         break;
     case UA_ICE_CREAM_TRUCK_TIRE:
     case UA_TAXI_CAB_TIRE:
@@ -517,23 +532,14 @@ void dbProcessInteractives(s32 type, DbNode* node, VECTOR3* loc, s32 parent, VEC
         screenInitCarOccupants(node);
         break;
     case UA_REAR_VIEW_MIRROR:
-        uadashInitRearViewMirror();
+        uadashInitRearViewMirror(node);
         break;
     default:
         break;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/DB", dbProcessInteractives);
-#endif
 
 void dbReset3DEnvironmentTrap(void)
 {
     db3DEnvironmentTrap = 0;
 }
-
-#ifndef NON_MATCHING
-INCLUDE_ASM("asm/nonmatchings/tm1/DB", jtbl_800F83B0);
-
-INCLUDE_ASM("asm/nonmatchings/tm1/DB", jtbl_800F83E0);
-#endif
