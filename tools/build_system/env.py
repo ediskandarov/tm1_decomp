@@ -293,6 +293,7 @@ class EnvironmentToolchain:
                 "tm1/SCREEN": ["-fbuiltin"],
                 "tm1/AI_CAR": ["-fbuiltin"],
                 "tm1/WEAPON": ["-fbuiltin"],
+                "tm1/TARGETS": ["-fbuiltin"],
             }
         )
 

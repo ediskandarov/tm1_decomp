@@ -20,9 +20,13 @@
 #include "tm1/WEAPON.H"
 
 #define TGT_MAX(a, b) ((a) < (b) ? (b) : (a))
-#define TGT_LONGER(a, b) (ABS(a) < ABS(b) ? (b) : (a))
-#define TGT_SHORTER(a, b) (ABS(a) < ABS(b) ? (a) : (b))
-#define TGT_DIST2(a, b) (ABS(TGT_LONGER(a, b)) + (ABS(TGT_SHORTER(a, b)) >> 1))
+#define TGT_DIST3(a, b)                                                                            \
+    TGT_MAX(abs((a)->vx - (b)->vx), TGT_MAX(abs((a)->vy - (b)->vy), abs((a)->vz - (b)->vz)))
+#define TGT_LONGER(a, b) (abs(a) < abs(b) ? (b) : (a))
+#define TGT_SHORTER(a, b) (abs(a) < abs(b) ? (a) : (b))
+#define TGT_DIST2(a, b)                                                                            \
+    (abs(TGT_LONGER((a)->vx - (b)->vx, (a)->vy - (b)->vy))                                         \
+        + (abs(TGT_SHORTER((a)->vx - (b)->vx, (a)->vy - (b)->vy)) >> 1))
 
 extern s32 D_801713CC[16];
 extern s32 D_8017140C[12];
@@ -231,7 +235,6 @@ Target* get_targets(void)
     return target;
 }
 
-#ifdef NON_MATCHING
 s32 target_takehit(s32 type, s32 instance, s32 damage)
 {
     VECTOR3 p;
@@ -304,9 +307,6 @@ s32 target_takehit(s32 type, s32 instance, s32 damage)
         break;
     case UA_UNK_600:
     case UA_UNK_601:
-        do_simple_explosion(&target[which].pos);
-        do_flames(&target[which].pos);
-        break;
     case UA_UNK_1017:
         do_simple_explosion(&target[which].pos);
         do_flames(&target[which].pos);
@@ -318,9 +318,7 @@ s32 target_takehit(s32 type, s32 instance, s32 damage)
         break;
     case UA_UNK_1000:
         for (i = 0; i < 45; i++) {
-            p.vx = rand() % 2400 + 9600;
-            p.vy = rand() % 2400 + 4000;
-            p.vz = (rand() & 0x3FF) + 8000;
+            setVector(&p, rand() % 2400 + 9600, rand() % 2400 + 4000, (rand() & 0x3FF) + 8000);
             do_big_smoke(&p);
             if (rand() & 1) {
                 do_mondo_explosion(&p);
@@ -334,10 +332,6 @@ s32 target_takehit(s32 type, s32 instance, s32 damage)
     }
     return 1;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", target_takehit);
-#endif
-
 void turnOnHoverCopSounds(VECTOR3* loc, u8 firing, u8 launching)
 {
     soundSetRangeAndXPositionFromWorldLoc(loc);
@@ -354,15 +348,6 @@ void turnOnHoverCopSounds(VECTOR3* loc, u8 firing, u8 launching)
     }
 }
 
-// TODO: Using `INCLUDE_RODATA()` for these strings results in them being
-// reordered against our will. `INCLUDE_ASM()` prevents reordering.
-//
-// Remove this once these strings are properly migrated.
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", D_800FC410);
-
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", D_800FC434);
-
-#ifdef NON_MATCHING
 void move_mercs(void)
 {
     VECTOR3 pp;
@@ -370,6 +355,7 @@ void move_mercs(void)
     s32* table;
     s32 count;
     s32 last;
+    s32 first;
     s32 i;
     s32 j;
     s32 k;
@@ -377,6 +363,7 @@ void move_mercs(void)
     s32 d;
     s32 r;
     s32 st;
+    s16 missile;
     u8 firing;
     u8 launching;
 
@@ -386,56 +373,54 @@ void move_mercs(void)
     case LEVEL2_WAREHOUSE:
         table = D_801713CC;
         count = 8;
-        i = 1;
+        first = 1;
         last = 2;
         break;
     case LEVEL3_FREEWAY:
         table = D_8017140C;
         count = 6;
-        i = 0;
+        first = 0;
         last = 1;
         break;
     case LEVEL4_CITY_PARK:
         table = D_8017143C;
         count = 14;
-        i = 1;
+        first = 1;
         last = 2;
         break;
     case LEVEL5_CYBURBIA:
         table = D_801714AC;
         count = 12;
-        i = 0;
+        first = 0;
         last = 1;
         break;
     case LEVEL6_ROOFTOPS:
         table = D_8017150C;
         count = 5;
-        i = 0;
+        first = 0;
         last = 2;
         break;
     default:
         return;
     }
-    for (; i < last; i++) {
+    for (i = first; i < last; i++) {
         st = hovermerc[i].unk14;
         if (st == 0) {
             hovermerc[i].timer--;
             if (hovermerc[i].timer <= 0) {
                 hovermerc[i].unk14 = 1;
                 GetPlayerPosition(0, &pp);
-                best = ABS(table[0] * 8 - pp.vx) + ABS(table[1] * 8 - pp.vy);
+                best = abs(table[0] * 8 - pp.vx) + abs(table[1] * 8 - pp.vy);
                 k = 0;
                 for (j = 1; j < count; j++) {
-                    d = ABS(table[j * 2] * 8 - pp.vx) + ABS(table[j * 2 + 1] * 8 - pp.vy);
+                    d = abs(table[j * 2] * 8 - pp.vx) + abs(table[j * 2 + 1] * 8 - pp.vy);
                     if (d < best && hovermerc[1 - i].unk16 != j) {
                         best = d;
                         k = j;
                     }
                 }
                 hovermerc[i].unk16 = k;
-                hovermerc[i].obj->pos.vx = table[k * 2] * 8;
-                hovermerc[i].obj->pos.vy = table[k * 2 + 1] * 8;
-                hovermerc[i].obj->pos.vz = 400;
+                setVector(&hovermerc[i].obj->pos, table[k * 2] * 8, table[k * 2 + 1] * 8, 400);
                 hovermerc[i].unk18 = 0;
                 if (shellGetCurrentLevel() == LEVEL6_ROOFTOPS) {
                     hovermerc[i].obj->pos.vz += D_80171534[k] * 8;
@@ -445,30 +430,31 @@ void move_mercs(void)
                 hovermerc[i].node->sel = 0;
                 hovermerc[i].obj->drawMode = 1;
             }
+            turnOnHoverCopSounds(&hovermerc[i].obj->pos, firing, launching);
+            continue;
         } else if (st == 1) {
-            if (hovermerc[i].unk18 >= hovermerc[i].obj->pos.vz) {
+            if (hovermerc[i].unk18 < hovermerc[i].obj->pos.vz) {
+                hovermerc[i].obj->pos.vz -= 4;
+            } else {
                 hovermerc[i].unk14 = 2;
                 hovermerc[i].node->sel = 1;
                 hovermerc[i].timer = 16;
-            } else {
-                hovermerc[i].obj->pos.vz -= 4;
             }
+            turnOnHoverCopSounds(&hovermerc[i].obj->pos, firing, launching);
+            continue;
         } else if (st == 2) {
             hovermerc[i].timer--;
             if (hovermerc[i].timer <= 0) {
                 hovermerc[i].node->sel = 2;
                 hovermerc[i].unk14 = 3;
                 r = rand() & 7;
-                if (i != 0) {
-                    hovermerc[i].timer = r + 10;
-                } else {
-                    hovermerc[i].timer = r + 18;
-                }
+                hovermerc[i].timer = i == 0 ? r + 18 : r + 10;
                 hovermerc[i].unk10 = 0;
             }
+            turnOnHoverCopSounds(&hovermerc[i].obj->pos, firing, launching);
+            continue;
         } else if (st == 3) {
-            hovermerc[i].timer--;
-            if (hovermerc[i].timer > 0) {
+            if (--hovermerc[i].timer > 0) {
                 if (hovermerc[i].timer < 8) {
                     hovermerc[i].node->sel = 2;
                 }
@@ -479,11 +465,12 @@ void move_mercs(void)
                 if (hovermerc[i].unk10 < 5) {
                     hovermerc[i].obj->pos.vz += 48;
                     firing = 1;
-                    aim.vx = pp.vx - hovermerc[i].obj->pos.vx + rand() % gTargetUnk1048
-                        - (gTargetUnk1048 >> 1);
-                    aim.vy = pp.vy - hovermerc[i].obj->pos.vy + rand() % gTargetUnk1048
-                        - (gTargetUnk1048 >> 1);
-                    aim.vz = pp.vz - hovermerc[i].obj->pos.vz;
+                    setVector(&aim,
+                        pp.vx - hovermerc[i].obj->pos.vx + rand() % gTargetUnk1048
+                            - (gTargetUnk1048 >> 1),
+                        pp.vy - hovermerc[i].obj->pos.vy + rand() % gTargetUnk1048
+                            - (gTargetUnk1048 >> 1),
+                        pp.vz - hovermerc[i].obj->pos.vz);
                     s_create_bullet(-hovermerc[i].state, &aim, &hovermerc[i].obj->pos, 2, 1, 28, 0);
                     hovermerc[i].node->sel = 3;
                     hovermerc[i].timer = (rand() & 0x1F) + 10;
@@ -493,60 +480,54 @@ void move_mercs(void)
                     }
                     do_flash(&hovermerc[i].obj->pos);
                     hovermerc[i].obj->pos.vz -= 48;
-                    goto sound;
+                } else {
+                    hovermerc[i].node->sel = 1;
+                    hovermerc[i].unk14 = 4;
                 }
             } else {
                 k = hovermerc[i].unk10;
-                if (shellGetCurrentLevel() == LEVEL6_ROOFTOPS) {
-                    if (k < 3) {
-                        goto fire;
+                if (shellGetCurrentLevel() == LEVEL6_ROOFTOPS ? k >= 3 : k >= 2) {
+                    hovermerc[i].node->sel = 1;
+                    hovermerc[i].unk14 = 4;
+                } else {
+                    hovermerc[i].obj->pos.vz += 62;
+                    setVector(&aim, 0, 0,
+                        ratan2(pp.vx - hovermerc[i].obj->pos.vx + rand() % gTargetUnk1048
+                                - (gTargetUnk1048 >> 1),
+                            pp.vy - hovermerc[i].obj->pos.vy)
+                            + rand() % gTargetUnk1048 - (gTargetUnk1048 >> 1));
+                    missile
+                        = create_LOS_missile(-hovermerc[i].state, &aim, &hovermerc[i].obj->pos, 2);
+                    if (missile >= 0) {
+                        setContrailColor(missile, 10, 50, 10);
                     }
-                } else if (k < 2) {
-                    goto fire;
+                    do_flash(&hovermerc[i].obj->pos);
+                    do_puff(&hovermerc[i].obj->pos);
+                    hovermerc[i].obj->pos.vz -= 62;
+                    hovermerc[i].node->sel = 3;
+                    launching = 1;
+                    hovermerc[i].timer = (rand() & 0x3F) + 30;
+                    hovermerc[i].unk10++;
+                    if (hovermerc[i].unk10 >= 2) {
+                        hovermerc[i].timer += 40 + (rand() & 0xF);
+                    }
                 }
             }
-            hovermerc[i].node->sel = 1;
-            hovermerc[i].unk14 = 4;
-            goto sound;
-        fire:
-            hovermerc[i].obj->pos.vz += 62;
-            aim.vx = 0;
-            aim.vy = 0;
-            aim.vz = ratan2(pp.vx - hovermerc[i].obj->pos.vx + rand() % gTargetUnk1048
-                             - (gTargetUnk1048 >> 1),
-                         pp.vy - hovermerc[i].obj->pos.vy)
-                + rand() % gTargetUnk1048 - (gTargetUnk1048 >> 1);
-            d = create_LOS_missile(-hovermerc[i].state, &aim, &hovermerc[i].obj->pos, 2);
-            if (d >= 0) {
-                setContrailColor(d, 10, 50, 10);
-            }
-            do_flash(&hovermerc[i].obj->pos);
-            do_puff(&hovermerc[i].obj->pos);
-            hovermerc[i].obj->pos.vz -= 62;
-            hovermerc[i].node->sel = 3;
-            launching = 1;
-            hovermerc[i].timer = (rand() & 0x3F) + 30;
-            hovermerc[i].unk10++;
-            if (hovermerc[i].unk10 >= 2) {
-                hovermerc[i].timer += 40 + (rand() & 0xF);
-            }
+            turnOnHoverCopSounds(&hovermerc[i].obj->pos, firing, launching);
+            continue;
         } else if (st == 4) {
             if (hovermerc[i].obj->pos.vz < hovermerc[i].unk18 + 400) {
                 hovermerc[i].obj->pos.vz += 4;
             } else {
+                hovermerc[i].timer = (gTargetUnk1052 >> 1) + rand() % gTargetUnk1052;
                 hovermerc[i].unk14 = 0;
-                hovermerc[i].timer = rand() % gTargetUnk1052 + (gTargetUnk1052 >> 1);
                 hovermerc[i].node->sel = 4;
                 hovermerc[i].unk16 = -1;
             }
         }
-    sound:
         turnOnHoverCopSounds(&hovermerc[i].obj->pos, firing, launching);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", move_mercs);
-#endif
 
 void merc_takehit(s32 which, s32 who)
 {
@@ -634,7 +615,6 @@ void clear_pedestrians(void)
     init_static_cops();
 }
 
-#ifdef NON_MATCHING
 void choose_ped_path(Pedestrian* ped)
 {
     PedPath* table;
@@ -676,21 +656,15 @@ void choose_ped_path(Pedestrian* ped)
     ped->path = table;
     if (rand() & 1) {
         ped->dir = -1;
-        ped->obj->pos.vx = table[n].x1 << 3;
-        ped->obj->pos.vy = table[n].y1 << 3;
-        ped->obj->pos.vz = 0;
-        dx = table[n].x0 - table[n].x1;
-        dy = table[n].y0 - table[n].y1;
+        setVector(&ped->obj->pos, table[n].x1 * 8, table[n].y1 * 8, 0);
+        dx = (table[n].x0 - table[n].x1) * 8;
+        dy = (table[n].y0 - table[n].y1) * 8;
     } else {
         ped->dir = 1;
-        ped->obj->pos.vx = table[n].x0 << 3;
-        ped->obj->pos.vy = table[n].y0 << 3;
-        ped->obj->pos.vz = 0;
-        dx = table[n].x1 - table[n].x0;
-        dy = table[n].y1 - table[n].y0;
+        setVector(&ped->obj->pos, table[n].x0 * 8, table[n].y0 * 8, 0);
+        dx = (table[n].x1 - table[n].x0) * 8;
+        dy = (table[n].y1 - table[n].y0) * 8;
     }
-    dx <<= 3;
-    dy <<= 3;
     if (dx < 0) {
         ped->obj->rot.vz = 0xC00;
     }
@@ -710,11 +684,7 @@ void choose_ped_path(Pedestrian* ped)
     ped->unk10 = 0;
     ped->unk24 = 0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", choose_ped_path);
-#endif
 
-#ifdef NON_MATCHING
 void init_pedestrian(s32 id, DbNode* ep)
 {
     DbNode* node;
@@ -771,15 +741,11 @@ void init_pedestrian(s32 id, DbNode* ep)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", init_pedestrian);
-#endif
 
-#ifdef NON_MATCHING
 void move_pedestrians(void)
 {
     VECTOR3 pos;
-    VECTOR v;
+    VECTOR3 v;
     VECTOR3 aim;
     s32 i;
     s32 p;
@@ -788,9 +754,7 @@ void move_pedestrians(void)
 
     for (i = 0; i < ped_made; i++) {
         if (pedestrian[i].unk24 == 2) {
-            v.vx = 0;
-            v.vy = 24;
-            v.vz = 0;
+            setVector(&v, 0, 24, 0);
             mathMulTransVec(&pedestrian[i].obj->mat, &v, &pos);
             pedestrian[i].obj->pos.vx += pos.vx;
             pedestrian[i].obj->pos.vy += pos.vy;
@@ -822,14 +786,10 @@ void move_pedestrians(void)
             if (pedestrian[i].unk24 == 0) {
                 for (; p < GetNumPlayers(); p++) {
                     GetPlayerPosition(p, &pos);
-                    if ((TGT_MAX(ABS(pos.vx - pedestrian[i].obj->pos.vx),
-                             TGT_MAX(ABS(pos.vy - pedestrian[i].obj->pos.vy),
-                                 ABS(pos.vz - pedestrian[i].obj->pos.vz)))
-                            >> 3)
-                        < 60) {
+                    if ((TGT_DIST3(&pos, &pedestrian[i].obj->pos) >> 3) < 60) {
                         if (pedestrian[i].id != UA_UNK_760) {
                             pedestrian[i].unk24 = 1;
-                            if (pedestrian[i].unk26 < pedestrian[i].unk28) {
+                            if (pedestrian[i].unk28 > pedestrian[i].unk26) {
                                 pedestrian[i].unk10 = pedestrian[i].unk26 + 1;
                             }
                             pedestrian[i].unk0C = 0;
@@ -852,9 +812,8 @@ void move_pedestrians(void)
                 pos.vz = 0;
                 pedestrian[i].unk0C = 0;
                 pedestrian[i].unk10++;
-                v.vx = pos.vx - pedestrian[i].obj->pos.vx;
-                v.vy = pos.vy - pedestrian[i].obj->pos.vy;
-                v.vz = 0;
+                setVector(
+                    &v, pos.vx - pedestrian[i].obj->pos.vx, pos.vy - pedestrian[i].obj->pos.vy, 0);
                 v.vx = v.vx * 8;
                 v.vy = v.vy * 8;
                 if (pedestrian[i].unk26 < pedestrian[i].unk10) {
@@ -868,14 +827,14 @@ void move_pedestrians(void)
                     pedestrian[i].obj->rot.vz = (pedestrian[i].obj->rot.vz + 0x800) & 0xFFF;
                     RotMatrixYXZ(&pedestrian[i].obj->rot, &pedestrian[i].obj->mat);
                 }
-                if (ABS(pedestrian[i].obj->pos.vx - pos.vx) < 6) {
+                if (abs(pedestrian[i].obj->pos.vx - pos.vx) < 6) {
                     pedestrian[i].obj->pos.vx = pos.vx;
                 } else if (pedestrian[i].obj->pos.vx < pos.vx) {
                     pedestrian[i].obj->pos.vx += 6;
                 } else {
                     pedestrian[i].obj->pos.vx -= 6;
                 }
-                if (ABS(pedestrian[i].obj->pos.vy - pos.vy) < 6) {
+                if (abs(pedestrian[i].obj->pos.vy - pos.vy) < 6) {
                     pedestrian[i].obj->pos.vy = pos.vy;
                 } else if (pedestrian[i].obj->pos.vy < pos.vy) {
                     pedestrian[i].obj->pos.vy += 6;
@@ -886,11 +845,7 @@ void move_pedestrians(void)
                 close = 0;
                 for (p = 0; p < GetNumPlayers(); p++) {
                     GetPlayerPosition(p, &pos);
-                    if ((TGT_MAX(ABS(pos.vx - pedestrian[i].obj->pos.vx),
-                             TGT_MAX(ABS(pos.vy - pedestrian[i].obj->pos.vy),
-                                 ABS(pos.vz - pedestrian[i].obj->pos.vz)))
-                            >> 3)
-                        < 120) {
+                    if ((TGT_DIST3(&pos, &pedestrian[i].obj->pos) >> 3) < 120) {
                         close = 1;
                     }
                 }
@@ -905,9 +860,8 @@ void move_pedestrians(void)
                     if ((pedestrian[i].id == UA_UNK_756 || pedestrian[i].id == UA_UNK_751)
                         && !(rand() & 0xF)) {
                         pedestrian[i].obj->pos.vz += 30;
-                        aim.vx = pos.vx - pedestrian[i].obj->pos.vx;
-                        aim.vy = pos.vy - pedestrian[i].obj->pos.vy;
-                        aim.vz = pos.vz - pedestrian[i].obj->pos.vz;
+                        setVector(&aim, pos.vx - pedestrian[i].obj->pos.vx,
+                            pos.vy - pedestrian[i].obj->pos.vy, pos.vz - pedestrian[i].obj->pos.vz);
                         create_bullet(-pedestrian[i].id, &aim, &pedestrian[i].obj->pos, 1);
                         do_mflash(&pedestrian[i].obj->pos);
                         pedestrian[i].obj->pos.vz -= 30;
@@ -922,9 +876,6 @@ void move_pedestrians(void)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", move_pedestrians);
-#endif
 
 void pedestrian_takehit(s32 id, VECTOR3* dir)
 {
@@ -964,18 +915,13 @@ void ped_takehit(s32 num, VECTOR3* dir)
     pedestrian_takehit(pedestrian[num].id, dir);
 }
 
-#ifdef NON_MATCHING
 s32 check_ped_hits(VECTOR3* pos, VECTOR3* dir)
 {
     s32 k;
 
     for (k = 0; k < ped_made; k++) {
         if (pedestrian[k].id != UA_UNK_760) {
-            if ((TGT_MAX(ABS(pos->vx - pedestrian[k].obj->pos.vx),
-                     TGT_MAX(ABS(pos->vy - pedestrian[k].obj->pos.vy),
-                         ABS(pos->vz - pedestrian[k].obj->pos.vz)))
-                    >> 3)
-                < 7) {
+            if ((TGT_DIST3(pos, &pedestrian[k].obj->pos) >> 3) < 7) {
                 pedestrian_takehit(pedestrian[k].id, dir);
                 return 1;
             }
@@ -983,9 +929,6 @@ s32 check_ped_hits(VECTOR3* pos, VECTOR3* dir)
     }
     return 0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", check_ped_hits);
-#endif
 
 void init_static_cops(void)
 {
@@ -998,11 +941,9 @@ void init_static_cops(void)
     window_state = 0;
 }
 
-#ifdef NON_MATCHING
 void setup_static_cop(DbNode* node, VECTOR3* pos)
 {
     s32 i;
-    VECTOR3* d;
 
     if (node->h.op != DB_OP_SWITCH) {
         printf("Error! Static Cop Not At SwNode!\n");
@@ -1013,20 +954,13 @@ void setup_static_cop(DbNode* node, VECTOR3* pos)
         printf("Error! Static Cop Exceeds Number Space\n");
         return;
     }
+    scop[i].state = node->h.kind;
     scop[i].hits = 0;
     scop[i].node = &node->sw;
-    scop[i].state = node->h.kind;
-    d = &scop[i].pos;
-    d->vx = pos->vx;
-    d->vy = pos->vy;
-    d->vz = pos->vz;
+    copyVector(&scop[i].pos, pos);
     scop[i].kind = 6;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", setup_static_cop);
-#endif
 
-#ifdef NON_MATCHING
 void static_cop_fire(s32 num, VECTOR3* tgt)
 {
     VECTOR3 aim;
@@ -1036,12 +970,10 @@ void static_cop_fire(s32 num, VECTOR3* tgt)
     scop[num].kind = 4;
     if (scop[num].state == UA_UNK_754 || scop[num].state == UA_UNK_755) {
         scop[num].pos.vz += 52;
-        aim.vx = 0;
-        aim.vy = 0;
-        aim.vz
-            = ratan2(tgt->vx - scop[num].pos.vx + rand() % gTargetUnk1048 - (gTargetUnk1048 >> 1),
-                  tgt->vy - scop[num].pos.vy)
-            + rand() % gTargetUnk1048 - (gTargetUnk1048 >> 1);
+        setVector(&aim, 0, 0,
+            ratan2(tgt->vx - scop[num].pos.vx + rand() % gTargetUnk1048 - (gTargetUnk1048 >> 1),
+                tgt->vy - scop[num].pos.vy)
+                + rand() % gTargetUnk1048 - (gTargetUnk1048 >> 1));
         r = create_LOS_missile(-scop[num].state, &aim, &scop[num].pos, 2);
         if (r >= 0) {
             setContrailColor(r, 10, 50, 10);
@@ -1052,23 +984,18 @@ void static_cop_fire(s32 num, VECTOR3* tgt)
         scop[num].kind = (rand() & 7) + 7;
     } else {
         scop[num].pos.vz += 40;
-        aim.vx = tgt->vx - scop[num].pos.vx - 64 + (rand() & 0x7F);
-        aim.vy = tgt->vy - scop[num].pos.vy - 64 + (rand() & 0x7F);
+        aim.vx = tgt->vx - scop[num].pos.vx - (64 - (rand() & 0x7F));
+        aim.vy = tgt->vy - scop[num].pos.vy - (64 - (rand() & 0x7F));
         aim.vz = tgt->vz - scop[num].pos.vz;
         create_bullet(-scop[num].state, &aim, &scop[num].pos, 1);
         do_flash(&scop[num].pos);
         scop[num].pos.vz -= 40;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", static_cop_fire);
-#endif
 
-#ifdef NON_MATCHING
 void move_static_cops(void)
 {
     VECTOR3 pp;
-    VECTOR3* sp;
     s32 i;
 
     GetPlayerPosition(0, &pp);
@@ -1076,7 +1003,6 @@ void move_static_cops(void)
         if (scop[i].state <= 0) {
             continue;
         }
-        sp = &scop[i].pos;
         switch (scop[i].hits) {
         case 4:
             scop[i].hits = 5;
@@ -1092,12 +1018,12 @@ void move_static_cops(void)
             }
             break;
         case 0:
-            if (TGT_DIST2(pp.vx - sp->vx, pp.vy - sp->vy) < 1200) {
+            if (TGT_DIST2(&pp, &scop[i].pos) < 1200) {
                 scop[i].hits = 1;
             }
             break;
         case 1:
-            if (TGT_DIST2(pp.vx - sp->vx, pp.vy - sp->vy) < 1200) {
+            if (TGT_DIST2(&pp, &scop[i].pos) < 1200) {
                 scop[i].hits = 2;
                 scop[i].kind = 2;
             } else {
@@ -1113,7 +1039,7 @@ void move_static_cops(void)
         case 3:
             scop[i].kind--;
             if (scop[i].kind < 3) {
-                if (TGT_DIST2(pp.vx - sp->vx, pp.vy - sp->vy) < 1200) {
+                if (TGT_DIST2(&pp, &scop[i].pos) < 1200) {
                     scop[i].hits = 2;
                 } else {
                     scop[i].hits = 1;
@@ -1130,9 +1056,6 @@ void move_static_cops(void)
         gTargetUnk1068 = 0;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/TARGETS", move_static_cops);
-#endif
 
 void static_cop_takehit(s32 num)
 {
