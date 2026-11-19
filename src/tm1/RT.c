@@ -5,6 +5,7 @@
 #include "tm1/HIER.H"
 #include "tm1/HUD.H"
 #include "tm1/RT.H"
+#include "tm1/TIMER.H"
 #include "tm1/UA.H"
 #include "tm1/UAEFFECT.H"
 #include "tm1/WEAPON.H"
@@ -22,7 +23,6 @@ static Db* cdb;
 static Db* curSdb;
 static Db* curRdb;
 
-#ifdef NON_MATCHING
 s32 rtMainLoop(void)
 {
     Db* p;
@@ -110,9 +110,6 @@ s32 rtMainLoop(void)
     }
     return D_8018BF1C;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/RT", rtMainLoop);
-#endif
 
 void rtReturnToShell(s32 code, s32 delay)
 {
