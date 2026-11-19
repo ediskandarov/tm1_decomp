@@ -43,11 +43,12 @@ static GrSprite SteamInfo[16];
 
 static MATRIX starMatrix = { 0 };
 
-static u32 D_8018C09C = 0;
+static u8 D_8018C09C = 0;
 
 static ArmorIconInfo ArmorInfo;
 
 void explodeInitFragments(void);
+void explodeDisplayFragments(Db* cdb, s32 which);
 
 Explosion* init_explosion(VECTOR3* pos, s32 a1, s32 a2, s32 a3, void* frames, u16 flag)
 {
@@ -134,161 +135,138 @@ s32 find_free_explosion(void)
     return -1;
 }
 
-// TODO: Leaving non-matching commented out for now since we don't have the
-// required functions/data declared yet.
+void draw_explosions(Db* cdb, s32 which)
+{
+    s32 i;
+    s32 frame;
+    s32 cx;
+    s32 cy;
+    s32 px;
+    s32 py;
+    VECTOR3* eye;
+    MATRIX* mat;
+    u_long* ot;
+    Explosion* e;
+    GrSprite* f;
+    POLY_FT4* p;
+    s32 z;
+    s32 zz;
+    s32 size;
+    s32 hfov;
+    s32 vfov;
+    s32 nx;
+    s32 ny;
+    s32 ang;
+    s32 dx;
+    s32 dy;
+    s32 t;
+    s32 sine;
+    VECTOR3 v;
+    VECTOR3 r;
 
-// void draw_explosions(Db *cdb, s32 which);
-// #ifdef NON_MATCHING
-// void draw_explosions(Db *cdb, s32 which)
-// {
-//     s32 i;
-//     s32 cx;
-//     s32 cy;
-//     s32 hfov;
-//     s32 vfov;
-//     VECTOR3 *eye;
-//     MATRIX *mat;
-//     u32 *ot;
-//     Explosion *e;
-//     GrSprite *f;
-//     POLY_FT4 *p;
-//     s32 z;
-//     s32 zz;
-//     s32 otz;
-//     s32 size;
-//     s32 sx;
-//     s32 sy;
-//     s32 px;
-//     s32 py;
-//     s32 nx;
-//     s32 ny;
-//     s32 ang;
-//     s32 dx;
-//     s32 dy;
-//     s32 x0;
-//     s32 y0;
-//     s32 x1;
-//     s32 y1;
-//     s32 d;
-//     s32 t;
-//     s32 v[3];
-//     s32 r[3];
-
-//     ot = (u32 *)cdb->ot;
-//     viewGetCenter(which, &cx, &cy);
-//     hfov = viewGetCurrentHorzFOVH(which);
-//     vfov = viewGetCurrentVertFOVH(which);
-//     explodeDisplayFragments(cdb, which);
-//     eye = viewGetEyeTrans(which);
-//     mat = viewGetEyeMat(which);
-//     for (i = 0; i < 80; i++) {
-//         if (pyro[i].lifetime < 0) {
-//             continue;
-//         }
-//         e = &pyro[i];
-//         if (which > 0 && pyro[i].lifetime == 1 && pyro[i].unk2C == 0) {
-//             continue;
-//         }
-//         v[0] = pyro[i].pos.vx + eye->vx;
-//         v[1] = pyro[i].pos.vy + eye->vy;
-//         v[2] = pyro[i].pos.vz + eye->vz;
-//         mathMulVec(mat, v, r);
-//         z = r[2];
-//         if (z < -32) {
-//             continue;
-//         }
-//         if (z >= 32001) {
-//             continue;
-//         }
-//         if (z < 8) {
-//             z = 8;
-//         }
-//         size = ((GrSprite *)e->frames)->w * e->unk10 * hfov / z;
-//         size = size >> 3;
-//         if (size >= 513) {
-//             size = 512;
-//         }
-//         if (size <= 0) {
-//             size = 1;
-//         }
-//         sx = r[0] * hfov / z;
-//         sy = r[1] * vfov / z;
-//         zz = z;
-//         otz = z >> 3;
-//         px = cx + sx;
-//         py = cy + sy;
-//         if (e->unk2A != 0) {
-//             otz -= 8;
-//         }
-//         if (otz < 0) {
-//             otz = 0;
-//         }
-//         if (px >= -99 && px < 1000) {
-//             if (py >= -99 && py < 1000) {
-//                 p = (POLY_FT4 *)cdb->prim;
-//                 if ((u8 *)(cdb->prim + 160) < cdb->areaEnd) {
-//                     cdb->prim += 160;
-//                     setPolyFT4(p);
-//                     setSemiTrans(p, 1);
-//                     t = e->unk28;
-//                     if (t != 0 && t == 1) {
-//                         setShadeTex(p, 0);
-//                         p->r0 = 0x40;
-//                         p->g0 = 0x40;
-//                         p->b0 = 0xFF;
-//                     } else {
-//                         setShadeTex(p, 1);
-//                     }
-//                     f = &((GrSprite *)e->frames)[pyro[i].lifetime / pyro[i].unk14];
-//                     p->u0 = f->u0;
-//                     p->v0 = f->v0;
-//                     p->u1 = f->u0 + f->w;
-//                     p->v1 = f->v0;
-//                     p->u2 = f->u0;
-//                     p->v2 = f->v0 + f->h;
-//                     p->u3 = f->u0 + f->w;
-//                     p->v3 = f->v0 + f->h;
-//                     p->tpage = f->tpage;
-//                     p->clut = f->clut;
-//                     if (e->unk0C == 1) {
-//                         v[0] = pyro[i].pos.vx + eye->vx;
-//                         v[1] = pyro[i].pos.vy + eye->vy;
-//                         v[2] = pyro[i].pos.vz + eye->vz + e->unk20;
-//                         mathMulVec(mat, v, r);
-//                         ny = cy + (r[1] * vfov / zz);
-//                         nx = cx + (r[0] * hfov / zz);
-//                         ang = ratan2(ny - py, nx - px) + 512;
-//                         dx = (rcos(ang) - rsin(ang)) * size >> 12;
-//                         dy = (rsin(ang) + rcos(ang)) * size >> 12;   /* retail calls rsin first
-//                         here (call_check --self --nm, 2026-09-19) */ p->x0 = nx - dx; p->y0 = ny
-//                         - dy; p->x1 = nx + dx; p->y1 = ny + dy; p->x2 = px - dx; p->y2 = py - dy;
-//                         p->x3 = px + dx;
-//                         p->y3 = py + dy;
-//                     } else {
-//                         x0 = px - size;
-//                         p->x0 = x0;
-//                         d = size * 2;
-//                         x1 = x0 + d;
-//                         y0 = py - size;
-//                         p->y0 = y0;
-//                         p->x1 = x1;
-//                         p->y1 = y0;
-//                         y1 = y0 + d;
-//                         p->x2 = x0;
-//                         p->y2 = y1;
-//                         p->x3 = x1;
-//                         p->y3 = y1;
-//                     }
-//                     AddPrim(ot + otz, p);
-//                 }
-//             }
-//         }
-//     }
-//     D_8018C09C = 1 - D_8018C09C;
-// }
-// #else
-INCLUDE_ASM("asm/nonmatchings/tm1/EXPLODE", draw_explosions);
-// #endif
+    ot = cdb->ot;
+    viewGetCenter(which, &cx, &cy);
+    hfov = viewGetCurrentHorzFOVH(which);
+    vfov = viewGetCurrentVertFOVH(which);
+    explodeDisplayFragments(cdb, which);
+    eye = viewGetEyeTrans(which);
+    mat = viewGetEyeMat(which);
+    for (i = 0; i < MAX_EXPLOSIONS; i++) {
+        if (pyro[i].lifetime < 0) {
+            continue;
+        }
+        e = &pyro[i];
+        if (which > 0 && pyro[i].lifetime == 1 && pyro[i].unk2C == 0) {
+            continue;
+        }
+        v.vx = pyro[i].pos.vx + eye->vx;
+        v.vy = pyro[i].pos.vy + eye->vy;
+        v.vz = pyro[i].pos.vz + eye->vz;
+        mathMulVec(mat, &v, &r);
+        z = r.vz;
+        if (z < -32) {
+            continue;
+        }
+        if (z >= 32001) {
+            continue;
+        }
+        if (z < 8) {
+            z = 8;
+        }
+        size = (((GrSprite*)e->frames)->w * e->unk10 * hfov / z) >> 3;
+        if (size >= 513) {
+            size = 512;
+        }
+        if (size <= 0) {
+            size = 1;
+        }
+        px = cx + r.vx * hfov / z;
+        py = cy + r.vy * vfov / z;
+        zz = z;
+        z = z >> 3;
+        if (e->unk2A != 0) {
+            z -= 8;
+        }
+        if (z < 0) {
+            z = 0;
+        }
+        if (px >= -99 && px < 1000) {
+            if (py >= -99 && py < 1000) {
+                p = (POLY_FT4*)cdb->prim;
+                if (cdb->prim + 160 < cdb->areaEnd) {
+                    cdb->prim += 160;
+                    setPolyFT4(p);
+                    setSemiTrans(p, 1);
+                    t = e->unk28;
+                    if (t != 0 && t == 1) {
+                        setShadeTex(p, 0);
+                        p->r0 = 0x40;
+                        p->g0 = 0x40;
+                        p->b0 = 0xFF;
+                    } else {
+                        setShadeTex(p, 1);
+                    }
+                    frame = pyro[i].lifetime / pyro[i].unk14;
+                    f = pyro[i].frames;
+                    p->u0 = f[frame].u0;
+                    p->v0 = f[frame].v0;
+                    p->u1 = f[frame].u0 + f[frame].w;
+                    p->v1 = f[frame].v0;
+                    p->u2 = f[frame].u0;
+                    p->v2 = f[frame].v0 + f[frame].h;
+                    p->u3 = f[frame].u0 + f[frame].w;
+                    p->v3 = f[frame].v0 + f[frame].h;
+                    p->tpage = f[frame].tpage;
+                    p->clut = f[frame].clut;
+                    if (e->unk0C == 1) {
+                        v.vx = pyro[i].pos.vx + eye->vx;
+                        v.vy = pyro[i].pos.vy + eye->vy;
+                        v.vz = pyro[i].pos.vz + eye->vz + e->unk20;
+                        mathMulVec(mat, &v, &r);
+                        ny = cy + (r.vy * vfov / zz);
+                        nx = cx + (r.vx * hfov / zz);
+                        ang = ratan2(ny - py, nx - px) + 512;
+                        dx = (rcos(ang) - rsin(ang)) * size >> 12;
+                        sine = rsin(ang);
+                        dy = (rcos(ang) + sine) * size >> 12;
+                        p->x0 = nx - dx;
+                        p->y0 = ny - dy;
+                        p->x1 = nx + dx;
+                        p->y1 = ny + dy;
+                        p->x2 = px - dx;
+                        p->y2 = py - dy;
+                        p->x3 = px + dx;
+                        p->y3 = py + dy;
+                    } else {
+                        setXYWH(p, px - size, py - size, size * 2, size * 2);
+                    }
+                    AddPrim(ot + z, p);
+                }
+            }
+        }
+    }
+    D_8018C09C = 1 - D_8018C09C;
+}
 
 void do_simple_spark(VECTOR3* pos)
 {
@@ -535,7 +513,6 @@ void create_stars(void)
     }
 }
 
-#ifdef NON_MATCHING
 void display_stars(u_long* ot, s32 view)
 {
     VECTOR pos;
@@ -582,9 +559,6 @@ void display_stars(u_long* ot, s32 view)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/EXPLODE", display_stars);
-#endif
 
 void explodeStoreFlameAnimation(DbNode* node)
 {
@@ -812,7 +786,6 @@ void explodeUpdateFragments(void)
     }
 }
 
-#ifdef NON_MATCHING
 void explodeDisplayFragments(Db* cdb, s32 which)
 {
     s32 i;
@@ -828,11 +801,6 @@ void explodeDisplayFragments(Db* cdb, s32 which)
     s32 sx;
     s32 sy;
     s32 size;
-    s32 x0;
-    s32 y0;
-    s32 x1;
-    s32 y1;
-    s32 d;
     POLY_FT4* p;
     VECTOR3 v;
     VECTOR3 r;
@@ -856,12 +824,10 @@ void explodeDisplayFragments(Db* cdb, s32 which)
                     if (z < 8) {
                         z = 8;
                     }
-                    sx = r.vx * hfov / z;
-                    sy = r.vy * vfov / z;
+                    sx = cx + r.vx * hfov / z;
+                    sy = cy + r.vy * vfov / z;
                     size = hfov * 10 / z;
                     z = z >> 3;
-                    sx = cx + sx;
-                    sy = cy + sy;
                     if (sx >= -99 && sx < 1000 && sy >= -99 && sy < 1000) {
                         p = (POLY_FT4*)cdb->prim;
                         if ((u8*)p + 160 <= cdb->areaEnd) {
@@ -878,19 +844,7 @@ void explodeDisplayFragments(Db* cdb, s32 which)
                             p->v3 = fragment[i].anim[frame].v0 + fragment[i].anim[frame].h;
                             p->tpage = fragment[i].anim[frame].tpage;
                             p->clut = fragment[i].anim[frame].clut;
-                            y0 = sy - size;
-                            x0 = sx - size;
-                            d = size * 2;
-                            x1 = x0 + d;
-                            p->x0 = x0;
-                            p->y0 = y0;
-                            p->x1 = x1;
-                            p->y1 = y0;
-                            y1 = y0 + d;
-                            p->x2 = x0;
-                            p->y2 = y1;
-                            p->x3 = x1;
-                            p->y3 = y1;
+                            setXYWH(p, sx - size, sy - size, size * 2, size * 2);
                             AddPrim(ot + z, p);
                         }
                     }
@@ -899,21 +853,12 @@ void explodeDisplayFragments(Db* cdb, s32 which)
         }
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/EXPLODE", explodeDisplayFragments);
-#endif
 
-// TODO: ArmorInfo is accessed without GP even though it is in SBSS.
-#ifdef NON_MATCHING
 ArmorIconInfo* explodeGetArmorIcon(void)
 {
     return &ArmorInfo;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/EXPLODE", explodeGetArmorIcon);
-#endif
 
-#ifdef NON_MATCHING
 void explodeMakeScreenRed(void)
 {
     Db* cdb;
@@ -935,6 +880,3 @@ void explodeMakeScreenRed(void)
         addPrim(cdb->ot, dm);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/EXPLODE", explodeMakeScreenRed);
-#endif
