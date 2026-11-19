@@ -465,7 +465,6 @@ void viewTweekInit()
 {
 }
 
-#ifdef NON_MATCHING
 void viewProc(s32 which)
 {
     MATRIX m0;
@@ -477,8 +476,10 @@ void viewProc(s32 which)
     Cs* node;
     Cs* cs;
     s32* fe;
+    s32* base;
 
-    fe = &curFovEntry[which];
+    base = curFovEntry;
+    fe = &base[which];
     if (*fe == 13) {
         wordCp((s32*)&view[1]->rot, (s32*)&view[0]->rot, 3);
         wordCp((s32*)&view[1]->pos, (s32*)&view[0]->pos, 3);
@@ -539,31 +540,21 @@ void viewProc(s32 which)
     SetGeomScreen(fovDat[*fe].fovh);
     SetGeomOffset(fovDat[*fe].centerWidth / 2, fovDat[*fe].centerHeight / 2);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/VIEW", viewProc);
-#endif
 
 s32 viewGetCurrentFovSet(s32 which)
 {
     return curFovEntry[which];
 }
 
-#ifdef NON_MATCHING
 void viewSetParent(Cs* node, s32 which)
 {
-    if (node != 0) {
-        if (view[which] != 0) {
-            view[which]->parent = node;
-        }
-        return;
-    }
-    if (view[which] != 0) {
+    if (node != NULL && view[which] != NULL) {
+        view[which]->parent = node;
+    } else if (view[which] != NULL) {
         view[which]->parent = ownship;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/VIEW", viewSetParent);
-#endif
+
 
 void viewSetSky(Cs* node)
 {
