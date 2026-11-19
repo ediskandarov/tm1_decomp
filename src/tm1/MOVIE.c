@@ -36,7 +36,7 @@ static u16 gSectorsPer;
 static u_long* mdec_bs;
 static u_long* mdec_rl;
 static u_long* mdec_image;
-static s32 gIsRGB24;
+static u8 gIsRGB24;
 static CdlLOC loc;
 static s32 Rewind_Switch;
 static u_long* sect_buff;
@@ -142,14 +142,13 @@ void movieInit(void)
     mdec_image = (u_long*)rtGetDoubleBufferArea();
 }
 
-#ifdef NON_MATCHING
 s32 moviePlaySlideShow(char* fmt, s32 count, s32 secs, s32 allowAbort)
 {
-    char name[48];
+    char name[40];
     s32 i;
     s32 t0;
     s32 first;
-    s32 lim;
+    s32 elapsed;
 
     soundInterruptPlayDA();
     first = ctlpadAnyKey(2) & 0xff;
@@ -158,67 +157,46 @@ s32 moviePlaySlideShow(char* fmt, s32 count, s32 secs, s32 allowAbort)
         sprintf(name, fmt, i);
         fileioLoadFileIntoRam(rtGetDoubleBufferArea(), name);
         screenDisplayImage(1, (u_long*)rtGetDoubleBufferArea(), 0, 0);
-        if ((GetCurTics() - t0) < (secs * 68644)) {
-            do {
-            } while (0);
-            lim = secs;
-            lim = lim * 68644;
-            do {
-                VSync(0);
-                UpdCtlPad();
-                if (ctlpadAnyKey(2) & 0xff) {
-                    if (first == 0 && allowAbort != 0) {
-                        return -1;
-                    }
-                } else {
-                    first = 0;
+        for (elapsed = GetCurTics() - t0; elapsed < secs * 68644; elapsed = GetCurTics() - t0) {
+            VSync(0);
+            UpdCtlPad();
+            if (ctlpadAnyKey(2) & 0xff) {
+                if (first == 0 && allowAbort != 0) {
+                    return -1;
                 }
-            } while ((GetCurTics() - t0) < lim);
+            } else {
+                first = 0;
+            }
         }
     }
     return 0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/MOVIE", moviePlaySlideShow);
-#endif
 
-#ifdef NON_MATCHING
 void strSetDefDecEnv(StrEnv* env, s32 flip, s32 x0, s32 y0, s32 x1, s32 y1, s32 w, s32 h)
 {
-    u_long* p;
-    s32 sw;
+    u8* p;
+    s32 size;
 
-    p = (u_long*)rtGetDoubleBufferArea() + 16384;
-    env->buf[0] = p;
-    p += 19200;
-    env->buf[1] = p;
-    p += 19200;
+    p = rtGetDoubleBufferArea();
+    size = 320 * 240;
+    p += 32 * 2048;
+    env->buf[0] = (u_long*)p;
+    p += size;
+    env->buf[1] = (u_long*)p;
+    p += size;
     env->idx = 0;
-    env->img = p;
+    env->img = (u_long*)p;
     env->flip = flip ^ 1;
     env->done = 0;
-    env->rect[0].x = x0;
-    env->rect[0].y = y0;
-    env->rect[0].w = w;
-    env->rect[0].h = h;
-    env->rect[1].x = x1;
-    env->rect[1].y = y1;
-    env->rect[1].w = w;
-    env->rect[1].h = h;
-    sw = 16;
+    setRECT(&env->rect[0], x0, y0, w, h);
+    setRECT(&env->rect[1], x1, y1, w, h);
     if (gIsRGB24) {
-        sw = 24;
+        setRECT(&env->slice, x0, y0, 24, h);
+    } else {
+        setRECT(&env->slice, x0, y0, 16, h);
     }
-    env->slice.x = x0;
-    env->slice.y = y0;
-    env->slice.w = sw;
-    env->slice.h = h;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/MOVIE", strSetDefDecEnv);
-#endif
 
-#ifdef NON_MATCHING
 void strInit(CdlLOC* pos, void (*cb)())
 {
     DecDCTReset(0);
@@ -228,32 +206,24 @@ void strInit(CdlLOC* pos, void (*cb)())
     StSetStream(gIsRGB24, 1, -1, 0, 0);
     strKickCD(pos);
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/MOVIE", strInit);
-#endif
 
-// void strCallback(void)
-// {
-//     s32 f;
-//
-//     if (gIsRGB24 != 0 && StCdIntrFlag != 0) {
-//         StCdInterrupt();
-//         StCdIntrFlag = 0;
-//     }
-//     LoadImage(&dec.slice, dec.img);
-//     dec.slice.x = dec.slice.x + dec.slice.w;
-//     f = dec.flip;
-//     if (dec.slice.x < dec.rect[f].x + dec.rect[f].w) {
-//         DecDCTout(dec.img, (dec.slice.w * dec.slice.h) / 2);
-//     } else {
-//         dec.done = 1;
-//         f = (f == 0);
-//         dec.flip = f;
-//         dec.slice.x = dec.rect[f].x;
-//         dec.slice.y = dec.rect[f].y;
-//     }
-// }
-INCLUDE_ASM("asm/nonmatchings/tm1/MOVIE", strCallback);
+void strCallback(void)
+{
+    if (gIsRGB24 != 0 && StCdIntrFlag != 0) {
+        StCdInterrupt();
+        StCdIntrFlag = 0;
+    }
+    LoadImage(&dec.slice, dec.img);
+    dec.slice.x = dec.slice.x + dec.slice.w;
+    if (dec.slice.x < dec.rect[dec.flip].x + dec.rect[dec.flip].w) {
+        DecDCTout(dec.img, (dec.slice.w * dec.slice.h) / 2);
+    } else {
+        dec.done = 1;
+        dec.flip = (dec.flip == 0);
+        dec.slice.x = dec.rect[dec.flip].x;
+        dec.slice.y = dec.rect[dec.flip].y;
+    }
+}
 
 s32 strNextVlc(StrEnv* env, u32 limit)
 {
@@ -272,13 +242,14 @@ s32 strNextVlc(StrEnv* env, u32 limit)
     return -1;
 }
 
-#ifdef NON_MATCHING
 u_long* strNext(StrEnv* env, u32 limit)
 {
     u_long* addr;
     u_long* header;
     s32 n;
     s32 w;
+    s32 width;
+    StHEADER* frame;
 
     n = 0x800000;
     do {
@@ -289,46 +260,46 @@ u_long* strNext(StrEnv* env, u32 limit)
     } while (n != 0);
     return 0;
 found:
-    lastFrame = header[2];
-    if (header[2] >= limit) {
+    frame = (StHEADER*)header;
+    lastFrame = frame->frameCount;
+    if (frame->frameCount >= limit) {
         Rewind_Switch = 1;
     }
-    if (lastW != ((u16*)header)[8] || lastH != ((u16*)header)[9]) {
-        lastW = ((u16*)header)[8];
-        lastH = ((u16*)header)[9];
+    w = frame->width;
+    if (lastW != w || lastH != frame->height) {
+        lastW = frame->width;
+        lastH = frame->height;
     }
     if (gIsRGB24) {
-        w = (lastW * 3) / 2;
-    } else {
         w = lastW;
+        width = (w * 3) / 2;
+    } else {
+        width = lastW;
     }
-    env->rect[1].w = w;
+    env->rect[1].w = width;
     env->rect[0].w = env->rect[1].w;
+    do {
+    } while (0);
     env->rect[1].h = lastH;
     env->rect[0].h = env->rect[1].h;
     env->slice.h = lastH;
     return addr;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/MOVIE", strNext);
-#endif
 
 void strSync(StrEnv* env, s32 unused)
 {
     s32 n;
 
     *(&n) = 0x800000;
-    if (env->done == 0) {
-        do {
-            *(&n) = *(&n) - 1;
-            if (*(&n) == 0) {
-                printf("time out in decoding !\n");
-                env->done = 1;
-                env->flip = (env->flip == 0);
-                env->slice.x = env->rect[env->flip].x;
-                env->slice.y = env->rect[env->flip].y;
-            }
-        } while (env->done == 0);
+    while (env->done == 0) {
+        *(&n) = *(&n) - 1;
+        if (*(&n) == 0) {
+            printf("time out in decoding !\n");
+            env->done = 1;
+            env->flip = (env->flip == 0);
+            env->slice.x = env->rect[env->flip].x;
+            env->slice.y = env->rect[env->flip].y;
+        }
     }
     env->done = 0;
 }
@@ -339,7 +310,6 @@ void strKickCD(CdlLOC* pos)
     while (CdRead2(0x1C0) == 0) { }
 }
 
-#ifdef NON_MATCHING
 s32 moviecdPlayMovie(char* name, MovieCallback cb, u8 wait, u8 rgb24, s32 limit, s32 x0, s32 y0,
     s32 x1, s32 y1, s32 w, s32 h, DISPENV* disp, u8* pflip)
 {
@@ -409,6 +379,3 @@ s32 moviecdPlayMovie(char* name, MovieCallback cb, u8 wait, u8 rgb24, s32 limit,
     CdControl(9, 0, 0);
     return done;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/MOVIE", moviecdPlayMovie);
-#endif
