@@ -139,7 +139,7 @@ segments:
       - [0x7954C, .data, tm1/EXPLODE]      # 0x80170E04
       - [0x7956C, .data, tm1/SCREEN]         # 0x80170E24
       - [0x797C8, .data, tm1/AICARUPD]  # 0x80171080
-      - [0x799F8, data, tm1/UA_DASH]        # 0x801712B0
+      - [0x799F8, .data, tm1/UA_DASH]        # 0x801712B0
       - [0x79A5C, .data, tm1/UAEFFECT]     # 0x80171314
       - [0x79C54, .data, tm1/TARGETS]       # 0x8017150C
       - [0x79EB0, .data, tm1/UA]            # 0x80171768
@@ -169,7 +169,7 @@ segments:
       - [0x947E4, .sdata, tm1/EXPLODE]     # 0x8018C09C
       - [0x947E8, .sdata, tm1/SCREEN]        # 0x8018C0A0
       - [0x94954, .sdata, tm1/AICARUPD] # 0x8018C20C
-      - [0x949F0, sdata, tm1/UA_DASH]       # 0x8018C2A8
+      - [0x949F0, .sdata, tm1/UA_DASH]      # 0x8018C2A8
       - [0x94A3C, .sdata, tm1/UAEFFECT]    # 0x8018C2F4
       - [0x94A54, .sdata, tm1/HUD]          # 0x8018C30C
       - [0x94A58, .sdata, tm1/TARGETS]      # 0x8018C310
@@ -194,7 +194,7 @@ segments:
       - {start: 0x94BC8, type: .sbss, vram: 0x8018C55C, name: tm1/EXPLODE}
       - {start: 0x94BC8, type: .sbss, vram: 0x8018C564, name: tm1/SCREEN}
       - {start: 0x94BC8, type: .sbss, vram: 0x8018C5BC, name: tm1/UA_SW}
-      - {start: 0x94BC8, type: sbss, vram: 0x8018C5D8, name: tm1/UA_DASH}
+      - {start: 0x94BC8, type: .sbss, vram: 0x8018C5D8, name: tm1/UA_DASH}
       - {start: 0x94BC8, type: .sbss, vram: 0x8018C5F8, name: tm1/UAEFFECT}
       - {start: 0x94BC8, type: .sbss, vram: 0x8018C604, name: tm1/HUD}
       - {start: 0x94BC8, type: .sbss, vram: 0x8018C624, name: tm1/UA}
@@ -231,7 +231,8 @@ segments:
       - {start: 0x94BC8, type: .bss, vram: 0x80199DB8, name: tm1/EXPLODE}
       - {start: 0x94BC8, type: .bss, vram: 0x8019C948, name: tm1/SCREEN}
       - {start: 0x94BC8, type: bss, vram: 0x8019CD3C, name: tm1/UA_SW}
-      - {start: 0x94BC8, type: bss, vram: 0x8019D184, name: tm1/UA_DASH}
+      - {start: 0x94BC8, type: .bss, vram: 0x8019D184, name: tm1/UA_DASH}
+      - {start: 0x94BC8, type: bss, vram: 0x8019D444, name: tm1/UA_DASH_data}
       - {start: 0x94BC8, type: .bss, vram: 0x8019E5BC, name: tm1/UAEFFECT}
       - {start: 0x94BC8, type: .bss, vram: 0x8019E648, name: tm1/HUD}
       - {start: 0x94BC8, type: .bss, vram: 0x8019E9B8, name: tm1/TARGETS}

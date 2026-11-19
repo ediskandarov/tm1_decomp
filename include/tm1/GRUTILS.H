@@ -18,8 +18,8 @@ typedef struct {
     s16 v0; /* +2 */
     s16 w; /* +4 */
     s16 h; /* +6 */
-    s16 tpage; /* +8 */
-    s16 clut; /* +10 */
+    u16 tpage; /* +8 */
+    u16 clut; /* +10 */
     s16 x; /* +12 */
     s16 y; /* +14 */
 } GrScreenSprite;

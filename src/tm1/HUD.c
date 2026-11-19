@@ -32,35 +32,31 @@ static GrSprite ArrowRightInfo;
 
 static Radar radar;
 
-#ifdef NON_MATCHING
 void hudResetRadar(void)
 {
+    const s32* buffer = &radar.buffer;
     radar.sigTotal = 0;
     radar.sigCount2 = 0;
     radar.sigCount3 = 0;
     radar.sigCount1 = 0;
     radar.sigCount0 = 0;
-    radar.buffer = (s32)(1u - (u32)radar.buffer);
+    radar.buffer = 1 - *buffer;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HUD", hudResetRadar);
-#endif
 
-#ifdef NON_MATCHING
 void hudDisplayRadar(u_long* ot)
 {
     Db* cdb;
     SPRT* p;
-    DR_MODE* m;
     s32 i;
-    RECT tw;
+    u8* end;
 
     if (rtIsSplitScreenOn() == 0 && radarOn != 0) {
         cdb = rtGetCdb();
         if (radar.sigCount0 != 0) {
             p = (SPRT*)cdb->prim;
-            if ((u32)(cdb->prim + 128) < (u32)cdb->areaEnd) {
-                m = (DR_MODE*)((u8*)p + 20);
+            end = cdb->prim + 128;
+            if (end < cdb->areaEnd) {
+                DR_MODE* m = (DR_MODE*)(p + 1);
                 cdb->prim = cdb->prim + 128;
                 setSprt(p);
                 setRGB0(p, 0x80, 0x80, 0x80);
@@ -78,8 +74,9 @@ void hudDisplayRadar(u_long* ot)
         }
         if (radar.sigCount1 != 0) {
             p = (SPRT*)cdb->prim;
-            if ((u32)(cdb->prim + 128) < (u32)cdb->areaEnd) {
-                m = (DR_MODE*)((u8*)p + 20);
+            end = cdb->prim + 128;
+            if (end < cdb->areaEnd) {
+                DR_MODE* m = (DR_MODE*)(p + 1);
                 cdb->prim = cdb->prim + 128;
                 setSprt(p);
                 setRGB0(p, 0x80, 0x80, 0x80);
@@ -98,8 +95,9 @@ void hudDisplayRadar(u_long* ot)
         if (radar.sigCount3 != 0) {
             p = (SPRT*)cdb->prim;
             cdb->prim = cdb->prim + 128;
-            if ((u32)(cdb->prim + 128) < (u32)cdb->areaEnd) {
-                m = (DR_MODE*)((u8*)p + 20);
+            end = cdb->prim + 128;
+            if (end < cdb->areaEnd) {
+                DR_MODE* m = (DR_MODE*)(p + 1);
                 setSprt(p);
                 setRGB0(p, 0x80, 0x80, 0x80);
                 SetDrawMode(m, 0, 0, 0, NULL);
@@ -116,8 +114,9 @@ void hudDisplayRadar(u_long* ot)
         }
         if (radar.sigCount2 != 0) {
             p = (SPRT*)cdb->prim;
-            if ((u32)(cdb->prim + 128) < (u32)cdb->areaEnd) {
-                m = (DR_MODE*)((u8*)p + 20);
+            end = cdb->prim + 128;
+            if (end < cdb->areaEnd) {
+                DR_MODE* m = (DR_MODE*)(p + 1);
                 cdb->prim = cdb->prim + 128;
                 setSprt(p);
                 setRGB0(p, 0x80, 0x80, 0x80);
@@ -133,12 +132,8 @@ void hudDisplayRadar(u_long* ot)
                 addPrim(ot, m);
             }
         }
-        i = 0;
-        if (radar.sigTotal > 0) {
-            do {
-                AddPrim(ot, &radar.sig[radar.buffer + (i * 2)]);
-                i++;
-            } while (i < radar.sigTotal);
+        for (i = 0; i < radar.sigTotal; i++) {
+            AddPrim(ot, &radar.sig[radar.buffer + (i * 2)]);
         }
         AddPrim(ot, &radar.mark[0]);
         AddPrim(ot, &radar.mark[1]);
@@ -147,15 +142,10 @@ void hudDisplayRadar(u_long* ot)
         hudResetRadar();
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HUD", hudDisplayRadar);
-#endif
 
-#ifdef NON_MATCHING
 void hudInitRadar(void)
 {
     s32 i;
-    LINE_F2* p;
 
     setPolyF4(&radar.bg[0]);
     setPolyF4(&radar.bg[1]);
@@ -165,10 +155,9 @@ void hudInitRadar(void)
     setRGB0(&radar.bg[1], 0x34, 0x71, 0x11);
     setXY4(&radar.bg[0], 0x10, 0x20, 0x59, 0x20, 0x10, 0x4D, 0x59, 0x4D);
     setXY4(&radar.bg[1], 0x10, 0x20, 0x59, 0x20, 0x10, 0x4D, 0x59, 0x4D);
-    p = &radar.sig[0];
     for (i = 0; i < 48; i++) {
-        setLineF2(p);
-        SetSemiTrans(p++, 0);
+        setLineF2(&radar.sig[i]);
+        SetSemiTrans(&radar.sig[i], 0);
     }
     setLineF2(&radar.mark[0]);
     setLineF2(&radar.mark[1]);
@@ -182,11 +171,7 @@ void hudInitRadar(void)
     radar.sigTotal = 0;
     radar.buffer = 0;
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HUD", hudInitRadar);
-#endif
 
-#ifdef NON_MATCHING
 void hudAddRadarSig(s32 id, VECTOR3* pos, s32 ang)
 {
     s32 x;
@@ -196,8 +181,6 @@ void hudAddRadarSig(s32 id, VECTOR3* pos, s32 ang)
     s32 cosine;
     s32 sine;
     s32 buf;
-    s32 bx;
-    s32 by;
     s32 n;
     LINE_F2* a;
     LINE_F2* b;
@@ -209,10 +192,10 @@ void hudAddRadarSig(s32 id, VECTOR3* pos, s32 ang)
     z = pos->vy;
     cosine = rcos(ang);
     sine = rsin(ang);
-    sx = (s32)((u32)x * (u32)cosine - (u32)z * (u32)sine) / radar.scale;
+    sx = (x * cosine - z * sine) / radar.scale;
     sine = rsin(ang);
     cosine = rcos(ang);
-    sz = (s32)(0u - ((u32)x * (u32)sine + (u32)z * (u32)cosine)) / radar.scale;
+    sz = -(x * sine + z * cosine) / radar.scale;
     if ((u32)sx + 36u >= 72 || (u32)sz + 22u >= 44 || radar.sigTotal + 2 >= 25) {
         if (id != UA_HEALTH_STAND) {
             if ((u32)sx + 36u < 72) {
@@ -233,18 +216,18 @@ void hudAddRadarSig(s32 id, VECTOR3* pos, s32 ang)
         }
     } else {
         buf = radar.buffer;
-        bx = sx + 53;
-        by = sz + 55;
+        sx += 53;
+        sz += 55;
         n = radar.sigTotal * 2;
         a = &radar.sig[buf + n];
         n += 2;
         b = &radar.sig[buf + n];
         if (id == UA_HEALTH_STAND) {
-            setXY2(a, sx + 52, sz + 54, sx + 54, sz + 56);
-            setXY2(b, sx + 52, sz + 56, sx + 54, sz + 54);
+            setXY2(a, sx - 1, sz - 1, sx + 1, sz + 1);
+            setXY2(b, sx - 1, sz + 1, sx + 1, sz - 1);
         } else {
-            setXY2(a, bx, by, sx + 54, by);
-            setXY2(b, bx, sz + 56, sx + 54, sz + 56);
+            setXY2(a, sx, sz, sx + 1, sz);
+            setXY2(b, sx, sz + 1, sx + 1, sz + 1);
         }
         switch (id) {
         case UA_ICE_CREAM_TRUCK:
@@ -308,9 +291,6 @@ void hudAddRadarSig(s32 id, VECTOR3* pos, s32 ang)
         radar.sigTotal += 2;
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/HUD", hudAddRadarSig);
-#endif
 
 void hudradarActivate(void)
 {

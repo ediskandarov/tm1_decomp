@@ -89,10 +89,10 @@ s32 grutilsParse2DSprite(DbNode* node, GrSprite* out, u32 max)
     return n;
 }
 
-#ifdef NON_MATCHING
 void grutilsDrawNumberUsingSprites(s32 num, SPRT* prim, GrSprite* digits, u32* ot)
 {
     s32 d;
+    s32 tens;
 
     if (num < 10) {
         prim->u0 = digits[num].u0;
@@ -105,11 +105,12 @@ void grutilsDrawNumberUsingSprites(s32 num, SPRT* prim, GrSprite* digits, u32* o
             num = num % 100;
         }
         d = num / 10;
-        prim->u0 = digits[d].u0;
-        prim->v0 = digits[d].v0;
-        prim->w = digits[d].w;
-        prim->h = digits[d].h;
-        d = num - d * 10;
+        tens = d;
+        d = num - tens * 10;
+        prim->u0 = digits[tens].u0;
+        prim->v0 = digits[tens].v0;
+        prim->w = digits[tens].w;
+        prim->h = digits[tens].h;
         AddPrim(ot, prim);
         prim[1].x0 = prim->x0 + prim->w + 1;
         prim[1].u0 = digits[d].u0;
@@ -119,6 +120,3 @@ void grutilsDrawNumberUsingSprites(s32 num, SPRT* prim, GrSprite* digits, u32* o
         AddPrim(ot, &prim[1]);
     }
 }
-#else
-INCLUDE_ASM("asm/nonmatchings/tm1/GRUTILS", grutilsDrawNumberUsingSprites);
-#endif

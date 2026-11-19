@@ -55,19 +55,6 @@ typedef struct Dashboard {
     /* 0x720 */ POLY_F4 mirrors[4];
 } Dashboard; /* 0x780 */
 
-typedef struct DashCockpitBuf {
-    /* 0x00 */ GrScreenSprite spr[7];
-    /* 0x70 */ u_long* pix[2];
-} DashCockpitBuf;
-
-typedef struct DashS3 {
-    s16 v[3];
-} DashS3;
-
-typedef struct DashB3 {
-    u8 v[3];
-} DashB3;
-
 void UAdashDrawDashboard(DVECTOR* pos);
 void UAdashHealthColor(s32 tier, POLY_G4* p);
 s32 UAdashTierFromPercentageOfHealth(s32 pct, s32 setHoles);
@@ -92,7 +79,7 @@ void uadashDrawSpeed(
     s32 speed, s32 unused1, SPRT* unused2, GrSprite* unused3, DR_MODE* unused4, u32* ot);
 void uadashInitHarley(void);
 char* uadashGetCarSign(s32 car);
-void uadashInitRearViewMirror(void);
+void uadashInitRearViewMirror();
 void uadashInitBulletHoles(void);
 void UAdashDrawRearViewMirror(u32* ot);
 void uadashToggleRemainingCarsList(void);
