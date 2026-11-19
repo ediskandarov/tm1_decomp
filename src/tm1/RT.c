@@ -23,6 +23,11 @@ static Db* cdb;
 static Db* curSdb;
 static Db* curRdb;
 
+static RtReturn gReturnsPending[4];
+static Db db[2];
+static Db sdb[2];
+static Db rdb[2];
+
 s32 rtMainLoop(void)
 {
     Db* p;

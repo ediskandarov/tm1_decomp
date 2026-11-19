@@ -30,6 +30,11 @@ static s32 polyCnt;
 static s32 lodShiftValue;
 static s32 groundFlag;
 
+static MATRIX fovNorms1[70];
+static MATRIX fovNorms2[70];
+static MatInfo matInfo[90];
+static SubPoly subPolyList[201];
+
 extern void geomProc(Db* db, ObjRec* objs, s32 nobj, MATRIX* mats, MATRIX* lights);
 
 void hierPush(DbNode* node, s32 mat, VECTOR3* pos, s32 eo)

@@ -130,11 +130,11 @@ segments:
       # .data segment
       # ------------------------------------------------
       - [0x785F4, .data, tm1/CS]             # 0x8016FEAC
-      - [0x78614, data, tm1/SOUND]          # 0x8016FECC
+      - [0x78614, .data, tm1/SOUND]          # 0x8016FECC
       - [0x78980, .data, tm1/TIMER]         # 0x80170238
       - [0x78998, .data, tm1/VIEW]           # 0x80170250
       - [0x78EF8, .data, tm1/FONT]           # 0x801707B0
-      - [0x794DC, data, tm1/CAR_INIT]       # 0x80170D94
+      - [0x794DC, .data, tm1/CAR_INIT]       # 0x80170D94
       - [0x794FC, .data, tm1/INTERACT]   # 0x80170DB4
       - [0x7954C, .data, tm1/EXPLODE]      # 0x80170E04
       - [0x7956C, .data, tm1/SCREEN]         # 0x80170E24
@@ -213,26 +213,25 @@ segments:
       # ------------------------------------------------
       # .bss segment
       # ------------------------------------------------
-      - {start: 0x94BC8, type: bss, vram: 0x8018C6E4, name: tm1/HIER}
+      - {start: 0x94BC8, type: .bss, vram: 0x8018C6E4, name: tm1/HIER}
       - {start: 0x94BC8, type: .bss, vram: 0x8018EDB8, name: tm1/CS}
-      - {start: 0x94BC8, type: bss, vram: 0x80194BF0, name: tm1/RT}
+      - {start: 0x94BC8, type: .bss, vram: 0x80194BF0, name: tm1/RT}
       - {start: 0x94BC8, type: .bss, vram: 0x80194F10, name: tm1/DB}
       - {start: 0x94BC8, type: .bss, vram: 0x80195EB0, name: tm1/HD}
-      - {start: 0x94BC8, type: bss, vram: 0x80196034, name: tm1/HDP}
+      - {start: 0x94BC8, type: .bss, vram: 0x80196034, name: tm1/HDP}
       - {start: 0x94BC8, type: .bss, vram: 0x80196064, name: tm1/LIGHT}
-      - {start: 0x94BC8, type: bss, vram: 0x801961E8, name: tm1/SOUND}
+      - {start: 0x94BC8, type: .bss, vram: 0x801961E8, name: tm1/SOUND}
       - {start: 0x94BC8, type: .bss, vram: 0x80198A4C, name: tm1/UA_SOUND}
-      - {start: 0x94BC8, type: bss, vram: 0x80198A6C, name: tm1/HIER_SUB}
+      - {start: 0x94BC8, type: .bss, vram: 0x80198A6C, name: tm1/HIER_SUB}
       - {start: 0x94BC8, type: .bss, vram: 0x80198A90, name: tm1/TIMER}
       - {start: 0x94BC8, type: .bss, vram: 0x80198A98, name: tm1/VIEW}
       - {start: 0x94BC8, type: .bss, vram: 0x80198B10, name: tm1/FONT}
-      - {start: 0x94BC8, type: bss, vram: 0x80198C28, name: tm1/WEAPON}
+      - {start: 0x94BC8, type: .bss, vram: 0x80198C28, name: tm1/WEAPON}
       - {start: 0x94BC8, type: .bss, vram: 0x801996B8, name: tm1/INTERACT}
       - {start: 0x94BC8, type: .bss, vram: 0x80199DB8, name: tm1/EXPLODE}
       - {start: 0x94BC8, type: .bss, vram: 0x8019C948, name: tm1/SCREEN}
-      - {start: 0x94BC8, type: bss, vram: 0x8019CD3C, name: tm1/UA_SW}
+      - {start: 0x94BC8, type: .bss, vram: 0x8019CD3C, name: tm1/UA_SW}
       - {start: 0x94BC8, type: .bss, vram: 0x8019D184, name: tm1/UA_DASH}
-      - {start: 0x94BC8, type: bss, vram: 0x8019D444, name: tm1/UA_DASH_data}
       - {start: 0x94BC8, type: .bss, vram: 0x8019E5BC, name: tm1/UAEFFECT}
       - {start: 0x94BC8, type: .bss, vram: 0x8019E648, name: tm1/HUD}
       - {start: 0x94BC8, type: .bss, vram: 0x8019E9B8, name: tm1/TARGETS}

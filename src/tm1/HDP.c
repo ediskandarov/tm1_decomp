@@ -14,7 +14,8 @@ HdpEnt* fastHdpStack = (HdpEnt*)0x1F800000;
 static HdpEnt* hdpStack;
 static s32 hdp_stackIdx;
 
-extern HdCsHit hdp_tmpResult;
+static HdCsHit hdp_tmpResult;
+static u8 hdpPadding[12];
 
 void hdpPush(DbNode* node, VECTOR3* pos, s32 id0, s32 id1);
 void hdpPush(DbNode* node, VECTOR3* pos, s32 id0, s32 id1)

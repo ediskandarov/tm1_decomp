@@ -18,7 +18,7 @@
 #include "tm1/UA_DASH.H"
 #include "tm1/VIEW.H"
 
-extern MATRIX D_80170D94;
+MATRIX D_80170D94 = IDENTITY_MATRIX;
 
 void CarInit(PlayerCar* car, s32 uaIndex, u8 which)
 {

@@ -9,21 +9,8 @@
 #include "tm1/SOUND.H"
 #include "tm1/TIMER.H"
 
-extern SoundSystemAttributes systemAttributes;
-// SoundSystemAttributes systemAttributes = {
-//     0x7F, 0,
-//     0x38,
-//     0x7F,
-//     0x38,
-//     0,
-//     0xD1D,
-//     0xABF549,
-//     0x6E,
-//     0x8A7,
-//     0x4ADCF1,
-//     0, 0,
-//     2,
-// };
+static SoundSystemAttributes systemAttributes
+    = { 0x7F, 0, 0x38, 0x7F, 0x38, 0, 0xD1D, 0xABF549, 0x6E, 0x8A7, 0x4ADCF1, 0, 0, 2 };
 
 s32 gReverbOn = 0;
 s32 gCurrentDATrack = 1;
@@ -44,16 +31,155 @@ static s32 CurPos;
 static s32 RepTime;
 static CdlLOC cdInterruptLoc;
 
-extern s16 D_8016FEFC[];
+static s16 D_8016FEFC[][3] = {
+    { 0, 30, 0 },
+    { 0, 29, 0 },
+    { 0, 33, 0 },
+    { 0, 12, 0 },
+    { 0, 13, 0 },
+    { 0, 36, 0 },
+    { 0, 24, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 23, 0 },
+    { 0, 23, 0 },
+    { 0, 36, 0 },
+    { 0, 22, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 21, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 25, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 19, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 21, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 16, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 18, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 17, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 15, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 46, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 41, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 44, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 50, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 48, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 45, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 42, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 43, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 39, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 40, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 49, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 47, 0 },
+    { 0, 29, 0 },
+    { 0, 36, 0 },
+    { 0, 56, 0 },
+    { 0, 29, 0 },
+    { 0, 1, 0 },
+    { 0, 0, 0 },
+    { 0, 2, 0 },
+    { 0, 3, 0 },
+    { 0, 7, 0 },
+    { 0, 4, 0 },
+    { 0, 5, 0 },
+    { 0, 11, 0 },
+    { 0, 9, 0 },
+    { 0, 8, 0 },
+    { 0, 6, 0 },
+    { 0, 10, 0 },
+    { 0, 55, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 12, 0 },
+    { 0, 27, 0 },
+    { 0, 28, 0 },
+    { 0, 29, 0 },
+    { 0, 30, 0 },
+    { 0, 31, 0 },
+    { 0, 32, 0 },
+    { 0, 33, 0 },
+    { 0, 34, 0 },
+    { 0, 35, 0 },
+    { 0, 52, 0 },
+    { 0, 27, 0 },
+    { 0, 28, 0 },
+    { 0, 29, 0 },
+    { 0, 41, 0 },
+    { 0, 43, 0 },
+    { 0, 40, 0 },
+    { 0, 45, 0 },
+    { 0, 39, 0 },
+    { 0, 42, 0 },
+    { 0, 48, 0 },
+    { 0, 47, 0 },
+    { 0, 46, 0 },
+    { 0, 49, 0 },
+    { 0, 50, 0 },
+    { 0, 44, 0 },
+    { 0, 54, 0 },
+    { 0, 36, 0 },
+    { 0, 26, 0 },
+    { 0, 38, 0 },
+    { 0, 12, 0 },
+    { 0, 37, 0 },
+    { 0, 57, 0 },
+    { 0, 58, 0 },
+    { 0, 57, 0 },
+    { 0, 53, 0 },
+};
 
-extern CdlLOC soundToc[100];
-extern VECTOR3 gSoundEyeSpaceLoc;
-extern VECTOR3 gSoundEyeToSoundLoc;
-extern u8 soundVoiceTable[24];
-extern SingleSound gSingleSounds[139];
-extern Tone gTonePool[35];
-extern SoundIdRequest gRequestQueue[45];
-extern Tone* gFinishingTonesList[28];
+static CdlLOC soundToc[100];
+static VECTOR3 gSoundEyeSpaceLoc;
+static VECTOR3 gSoundEyeToSoundLoc;
+static u8 soundVoiceTable[24];
+static SingleSound gSingleSounds[139];
+static Tone gTonePool[35];
+static SoundIdRequest gRequestQueue[45];
+static Tone* gFinishingTonesList[30];
 
 extern u8 soundVabHeaders[0x40];
 extern SpuVoiceAttr spuVoiceAttr;
@@ -1506,5 +1632,5 @@ void freeToneInstance(Tone* t)
 
 s16* getProgVabProgs()
 {
-    return D_8016FEFC;
+    return D_8016FEFC[0];
 }

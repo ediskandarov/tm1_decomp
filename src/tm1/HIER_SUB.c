@@ -3,8 +3,8 @@
 
 #include "tm1/HIER_SUB.H"
 
-extern SubPolyWord* prim2D[3];
-extern SubPolyWord pOut[5];
+static SubPolyWord* prim2D[4];
+static SubPolyWord pOut[5];
 
 extern u32 sdDrawModeTag;
 extern u32 sdDrawModeCode0;

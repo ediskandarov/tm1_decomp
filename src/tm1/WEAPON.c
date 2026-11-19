@@ -62,6 +62,10 @@ static GrSprite* contrailInfo;
 static GrSprite* plasmaInfo;
 static GrSprite* fireballInfo;
 
+static Bullet blist[40];
+static GrSprite BulletSprites[32];
+static POLY_F4 fxSheet[2];
+
 void bulSetOwnship(Cs* ownship)
 {
     jays_ownship = ownship;

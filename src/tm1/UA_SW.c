@@ -11,6 +11,16 @@ static DbSwitch* BreakingWindowSwitch;
 static s32 numDestroySwitches;
 static s32 numDestroyGroups;
 
+static DbSwitch* carSwitch[15];
+static DbSwitch* carTireSwitch[15][3];
+static DbTrans* gWeaponPickup[50];
+static DbSwitch* destroySwitch[30];
+static DbGroup* destroyGroup[30];
+static DbSwitch* barricadeSwitch[4];
+static DbSwitch* healthstandSwitch[10];
+static DbGroup* carHeadlightSwitch[15][3];
+static DbGroup* carShadowSwitch[15][3];
+
 void uaswInitDbSwitch(DbNode* node, s32 type)
 {
     s32 idx;

@@ -35,13 +35,9 @@ typedef struct ObjRec {
 } ObjRec; /* 0x20 */
 
 extern HierEnt hierStack[150];
-extern MatInfo matInfo[90];
-extern SubPoly subPolyList[];
 extern ObjRec objList[220];
 extern MATRIX matList[];
 extern MATRIX lightList[];
-extern MATRIX fovNorms1[];
-extern MATRIX fovNorms2[];
 
 void hierPush(DbNode* node, s32 mat, VECTOR3* pos, s32 eo);
 s32 hierPop(HierEnt** out);
